@@ -96,6 +96,22 @@ latency (直列鎖): N=6 8.34 / 5.91 / 7.28 (0.71x / 0.87x)、N=8 15.75 / 10.70 
 
 BIT=32 は arm64 でも LLVM が i64 limb で展開するので無意味 (x86-64 と同じ理由)。
 
+### N = 12, 16, 32 on M4 (2026-09-16、throughput ns/op)
+
+x86-64 (N=32 で 0.34x) と違い、M4 では N が大きいほど効きが小さくなる (N=12 0.65x、N=16 0.71x、N=32 0.86x)。opti と hand は全 N で同速。
+
+| N | org | opti | hand | opti/org | hand/org |
+|---|---|---|---|---|---|
+| 12 | 37.2 | 24.3 | 23.1 | 0.65 | 0.62 |
+| 16 | 74.3 | 52.6 | 52.2 | 0.71 | 0.70 |
+| 32 | 324.1 | 278.6 | 278.2 | 0.86 | 0.86 |
+
+latency も同じ比 (N=32: 319.6 / 276.3 / 278.4)。
+
+命令数 (org → opti、hand): N=12 1037 → 566 (557)、N=16 1918 → 1155 (1163)、N=32 8405 → 5665 (5722)。org の余分は adds / cinc (N=32 で adds 1364 / cinc 1108、opti は 31 / 30) だが、sp 参照は org 3383 / opti 3406 / hand 3441 で同じ。x86-64 では org の setb/movzbl とスピル (sp 3163 → 2431) が減るのに対し、AArch64 の org は最初から adcs + cinc で桁上げを扱うのでスピル量が変わらず、M4 の広い issue 幅が adds / cinc を吸収する。N=32 は org 5.9 IPC / opti 4.6 IPC 相当で、どちらも mul 528 + umulh 528 のスループットとロード・ストアに律速されている。
+
+注意: 以前の `make clean` は `rm -f sqr*.ll` で git 管理下の sqrRef*.ll も消していた (`git checkout -- work/sqrRef.ll work/sqrRef32.ll` か `make ref` で復元できる)。sqr.ll / sqr[0-9]*.ll / sqrOpt*.ll だけ消すように直した。
+
 ## 還元が続く場合 (mcl の Fp::sqr 相当、BLS12-381-p N=6): `make mod && ./benchMod.exe`
 
 gen_sqrmod.py (mcl-ff / mcl の DSL を使う) で 3 形を生成し、`opt -O2 -vectorize-slp=false` (clang-21 相当) → llc でコンパイル。mul(x,x) は CIOS (mcl の現在の Fp::sqr)、sqrWide は `mul i768 (zext x),(zext x)` の後に emit_montRed、sqrFused は sqrPre_raw の後に emit_montRed (mcl-ff の llvm_sqr)。org = 元 llc、opt = パッチ llc。

@@ -86,7 +86,7 @@ run: bench$(SFX).exe
 	$(TASKSET) ./bench$(SFX).exe
 
 clean:
-	rm -f sqr*.ll sqrOpt*.ll *.o *.s bench*.exe
+	rm -f sqr.ll sqr[0-9]*.ll sqrOpt*.ll *.o *.s bench*.exe
 
 .PHONY: all ref asm hist run clean
 
