@@ -81,6 +81,44 @@ limb が i32 (mull) になる本来の 32 bit 比較。sqrOpt は元の 0.67〜0
 - `sqrRef.ll` / `sqrRef32.ll` / `ref32/` は生成済みでターゲット非依存なので、work/ ごとコピーすれば mcl-ff は要らない (`make ref` を実行しなければ上書きされない)。
 - Linux で出した aarch64 のヒストグラム (`make TRIPLE=aarch64 ATTR= TAG=_a64 hist`) では sqrOpt と sqrRef はほぼ同一 (N=6: 120 / 119 命令、sp 参照 20 / 19、mul 21 + umulh 21 + adcs 25 + extr 9; N=8: 216 / 215)。元の llc は N=6 187 命令 (adds 46 / adcs 25 / cinc 36)、N=8 379 命令。
 
+## 結果 (2026-09-16、Apple M4 Pro、macOS arm64、ns/op)
+
+llc は build.org = マージベース 182ca95e (main、assertions OFF)、build = ブランチ sqr-wide-mul (assertions ON) を macOS 上でビルド (`-DLLVM_TARGETS_TO_BUILD='AArch64;X86'`、llc だけ)。core 固定なし。3 回走らせて 2 回目以降を採用 (初回の N=2 だけ warm-up で 2 倍程度ぶれる)。
+
+throughput (P=4):
+
+```
+ N       sqr    sqrOpt    sqrRef  sqrOpt/sqr  sqrRef/sqr
+ 2     0.815     0.804     0.614       0.99x       0.75x
+ 3     1.665     1.276     1.314       0.77x       0.79x
+ 4     3.434     2.312     2.334       0.67x       0.68x
+ 5     5.065     3.262     3.132       0.64x       0.62x
+ 6     8.285     4.581     4.540       0.55x       0.55x
+ 7    11.497     6.477     6.609       0.56x       0.57x
+ 8    15.602     9.017     8.754       0.58x       0.56x
+```
+
+latency (直列鎖): N=6 8.34 / 5.91 / 7.28 (0.71x / 0.87x)、N=8 15.75 / 10.70 / 9.96 (0.68x / 0.63x)。
+
+- sqrOpt は N>=3 で全部 sqrRef と同速 (差 1〜3%)。x86-64 (Xeon) の 0.58〜0.68x より効きが大きく、N=6 で 0.55x、N=8 で 0.58x。mcl memo (2026-09-14) の M4 実測 sqrPre_raw 4.35 ns (N=6) とほぼ一致する (4.54〜4.58)。
+- ヒストグラム (`make hist`、arm64-apple-macosx): sqrOpt と sqrRef は N=2..5 と N=8 で完全に同じ命令構成 (N=6: 122 / 121、N=7: 166 / 169)。N=6 は mul 21 / umulh 21 / adcs 25 / adds 5 / cinc 4 / extr 9 / lsl 1、sp 参照 22 / 21。元の llc は N=6 203 命令 (adds 46 / adcs 25 / adc 10 / cinc 36、sp 28)、N=8 395 (sp 88、sqrOpt 218 / sp 54)。Linux の aarch64 (120 / 187 / 216 / 379) と数命令ずつ違うのは triple (Darwin の frame 周り) の差。
+- N=2 だけ sqrRef が速い (0.61 vs 0.80 ns)。命令列は 15 命令で完全に同一なので、bench 側の関数配置か分岐予測の都合 (x86 でも N=2 は差なし)。
+
+### BIT=32 (Unit = uint32_t) on M4: `make BIT=32 ref bench32.exe run`
+
+LLVM は 64 bit limb で展開するので x86-64 と同じ傾向。sqrOpt は N=4, 6, 7, 8 で 0.66〜0.79x、N=5 は 0.98x (i320 → i64 limb 5 個の境界で変化なし)。32 bit limb の手組み sqrRef は 1.4〜1.8 倍遅い。latency は N<=6 で差なし (~1.0x)、N=7, 8 で 0.76x / 0.88x。
+
+```
+ N       sqr    sqrOpt    sqrRef  sqrOpt/sqr  sqrRef/sqr
+ 2     0.510     0.508     0.542       1.00x       1.06x
+ 3     0.557     0.557     0.804       1.00x       1.44x
+ 4     0.804     0.633     1.306       0.79x       1.62x
+ 5     1.263     1.237     2.040       0.98x       1.61x
+ 6     1.669     1.276     3.076       0.76x       1.84x
+ 7     2.977     2.032     4.174       0.68x       1.40x
+ 8     3.443     2.289     5.795       0.66x       1.68x
+```
+
 ## 還元が続く場合 (mcl の Fp::sqr 相当、BLS12-381-p N=6): `make mod && ./benchMod.exe`
 
 gen_sqrmod.py (mcl-ff / mcl の DSL を使う) で 3 形を生成し、`opt -O2 -vectorize-slp=false` (clang-21 相当) → llc でコンパイル。mul(x,x) は CIOS (mcl の現在の Fp::sqr)、sqrWide は `mul i768 (zext x),(zext x)` の後に emit_montRed、sqrFused は sqrPre_raw の後に emit_montRed (mcl-ff の llvm_sqr)。org = 元 llc、opt = パッチ llc。
