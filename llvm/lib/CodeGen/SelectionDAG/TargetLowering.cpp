@@ -12612,6 +12612,148 @@ void TargetLowering::forceExpandMultiply(SelectionDAG &DAG, const SDLoc &dl,
   }
 }
 
+SDValue TargetLowering::expandWideSquare(SDNode *N, SelectionDAG &DAG) const {
+  assert(N->getOpcode() == ISD::MUL && N->getOperand(0) == N->getOperand(1) &&
+         "Expected a squaring MUL");
+  EVT VT = N->getValueType(0);
+  if (!VT.isScalarInteger())
+    return SDValue();
+  LLVMContext &Ctx = *DAG.getContext();
+  // Give every node its own increasing IR order: with the source-order
+  // scheduler (the default when the machine scheduler is enabled) this keeps
+  // the schedule below, in particular the squares of the limbs right before
+  // the final add, which roughly halves the spills compared with letting the
+  // register-reduction heuristic order nodes that all share N's IR order.
+  unsigned Order = N->getIROrder();
+  auto dl = [&]() { return SDLoc(N->getDebugLoc(), Order++); };
+
+  // The limb type is the first legal type on the expansion chain of VT.
+  EVT LimbVT = VT;
+  while (!isTypeLegal(LimbVT)) {
+    EVT NextVT = getTypeToTransformTo(Ctx, LimbVT);
+    if (!NextVT.isScalarInteger() ||
+        NextVT.getSizeInBits() >= LimbVT.getSizeInBits())
+      return SDValue();
+    LimbVT = NextVT;
+  }
+  unsigned U = LimbVT.getSizeInBits();
+  unsigned Bits = VT.getSizeInBits();
+  // Two limbs are handled by expandMUL.
+  if (Bits % U != 0 || Bits < 4 * U)
+    return SDValue();
+  unsigned R = Bits / U; // number of result limbs
+
+  bool HasUMUL_LOHI = isOperationLegalOrCustom(ISD::UMUL_LOHI, LimbVT);
+  bool HasMULHU = isOperationLegalOrCustom(ISD::MULHU, LimbVT);
+  if (!HasUMUL_LOHI && !HasMULHU)
+    return SDValue();
+
+  // Only the limbs that may be nonzero take part; a zero-extended operand
+  // (the usual way to request the full product) is squared at its real width.
+  SDValue X = N->getOperand(0);
+  KnownBits Known = DAG.computeKnownBits(X);
+  unsigned NumLimbs = divideCeil(Bits - Known.countMinLeadingZeros(), U);
+  if (NumLimbs < 2)
+    return SDValue();
+  NumLimbs = std::min(NumLimbs, R);
+
+  SmallVector<SDValue, 16> Limb(NumLimbs);
+  for (unsigned I = 0; I != NumLimbs; ++I) {
+    SDValue V = X;
+    if (I)
+      V = DAG.getNode(ISD::SRL, dl(), VT, X,
+                      DAG.getShiftAmountConstant(I * U, VT, dl()));
+    Limb[I] = DAG.getNode(ISD::TRUNCATE, dl(), LimbVT, V);
+  }
+
+  EVT Prod2VT = EVT::getIntegerVT(Ctx, 2 * U);
+  auto LimbsVT = [&](unsigned K) { return EVT::getIntegerVT(Ctx, K * U); };
+
+  // The 2U-bit product A * B (BUILD_PAIR expands to its operands), or only its
+  // low limb when the high limb would fall beyond the result.
+  auto MakeProd = [&](SDValue A, SDValue B, bool LowOnly) -> SDValue {
+    if (LowOnly)
+      return DAG.getNode(ISD::MUL, dl(), LimbVT, A, B);
+    SDValue PLo, PHi;
+    if (HasUMUL_LOHI) {
+      PLo = DAG.getNode(ISD::UMUL_LOHI, dl(), DAG.getVTList(LimbVT, LimbVT), A,
+                        B);
+      PHi = PLo.getValue(1);
+    } else {
+      PLo = DAG.getNode(ISD::MUL, dl(), LimbVT, A, B);
+      PHi = DAG.getNode(ISD::MULHU, dl(), LimbVT, A, B);
+    }
+    return DAG.getNode(ISD::BUILD_PAIR, dl(), Prod2VT, PLo, PHi);
+  };
+
+  // Place a narrower value at limb offset Off of WideVT.
+  auto Place = [&](SDValue V, unsigned Off, EVT WideVT) -> SDValue {
+    if (V.getValueType() != WideVT)
+      V = DAG.getNode(ISD::ZERO_EXTEND, dl(), WideVT, V);
+    if (Off)
+      V = DAG.getNode(ISD::SHL, dl(), WideVT, V,
+                      DAG.getShiftAmountConstant(Off * U, WideVT, dl()));
+    return V;
+  };
+
+  // Concatenate parts that do not overlap.
+  auto Pack = [&](ArrayRef<std::pair<SDValue, unsigned>> Parts, EVT WideVT) {
+    SDNodeFlags Flags;
+    Flags.setDisjoint(true);
+    SDValue Acc;
+    for (const auto &[V, Off] : Parts) {
+      SDValue P = Place(V, Off, WideVT);
+      Acc = Acc ? DAG.getNode(ISD::OR, dl(), WideVT, Acc, P, Flags) : P;
+    }
+    return Acc;
+  };
+
+  // Cross products x[i] * x[i+d] of the anti-diagonal d sit at limbs 2i+d,
+  // so they tile without overlap and a diagonal is a plain concatenation.
+  // Diagonals are accumulated bottom-up (d = n-1 .. 1); each one is two limbs
+  // wider than the shifted accumulator, so the add is a short carry chain that
+  // ends in the diagonal's own top limb. Widths are clamped to the R result
+  // limbs, which computes the truncated square modulo 2^Bits.
+  SDValue Acc;
+  for (unsigned D = NumLimbs - 1; D > 0; --D) {
+    unsigned RowLimbs = std::min(2 * (NumLimbs - D), R - D);
+    SmallVector<std::pair<SDValue, unsigned>, 8> Parts;
+    for (unsigned I = 0; I + D < NumLimbs; ++I) {
+      unsigned Pos = 2 * I;
+      if (Pos >= RowLimbs)
+        break;
+      Parts.push_back(
+          {MakeProd(Limb[I], Limb[I + D], /*LowOnly=*/Pos + 1 >= RowLimbs),
+           Pos});
+    }
+    EVT RowVT = LimbsVT(RowLimbs);
+    SDValue Row = Pack(Parts, RowVT);
+    Acc = Acc ? DAG.getNode(ISD::ADD, dl(), RowVT, Place(Acc, 1, RowVT), Row)
+              : Row;
+  }
+
+  // Double the cross sum once, as a shift: an ADD X, X would be expanded into
+  // a carry chain before any combine could turn it into a shift.
+  unsigned W = std::min(2 * NumLimbs, R); // result limbs that can be nonzero
+  EVT DblVT = LimbsVT(W - 1);
+  SDValue Dbl = DAG.getNode(ISD::SHL, dl(), DblVT, Place(Acc, 0, DblVT),
+                            DAG.getShiftAmountConstant(1, DblVT, dl()));
+  EVT ZVT = LimbsVT(W);
+  SDValue Cross = Place(Dbl, 1, ZVT);
+
+  // The squares x[i]^2 tile the result exactly; add them in one carry chain.
+  // They are created last so that they are scheduled close to their use.
+  SmallVector<std::pair<SDValue, unsigned>, 8> DiagParts;
+  for (unsigned I = 0; 2 * I < W; ++I)
+    DiagParts.push_back(
+        {MakeProd(Limb[I], Limb[I], /*LowOnly=*/2 * I + 1 >= W), 2 * I});
+  SDValue Z = DAG.getNode(ISD::ADD, dl(), ZVT, Cross, Pack(DiagParts, ZVT));
+
+  if (ZVT != VT)
+    Z = DAG.getNode(ISD::ZERO_EXTEND, dl(), VT, Z);
+  return Z;
+}
+
 void TargetLowering::forceExpandWideMUL(SelectionDAG &DAG, const SDLoc &dl,
                                         bool Signed, const SDValue LHS,
                                         const SDValue RHS, SDValue &Lo,

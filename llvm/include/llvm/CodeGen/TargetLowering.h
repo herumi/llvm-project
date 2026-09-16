@@ -6007,6 +6007,15 @@ public:
                            SDValue HiLHS = SDValue(),
                            SDValue HiRHS = SDValue()) const;
 
+  /// Expand MUL X, X of an illegal scalar integer type whose limb type is
+  /// legal into limb products arranged on anti-diagonals: the products of one
+  /// diagonal tile without overlap, so a diagonal is a concatenation, the
+  /// diagonals are accumulated bottom-up with one short carry chain each, the
+  /// cross sum is doubled once with a shift and the squares of the limbs are
+  /// added in a single full-width add. Only the low bits of the result type
+  /// are computed. Returns an empty SDValue if not applicable.
+  SDValue expandWideSquare(SDNode *N, SelectionDAG &DAG) const;
+
   /// Calculate full product of LHS and RHS either via a libcall or through
   /// brute force expansion of the multiplication. The expansion works by
   /// splitting the 2 inputs into 4 pieces that we can multiply and add together
