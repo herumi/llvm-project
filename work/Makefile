@@ -90,3 +90,25 @@ clean:
 	rm -f sqr*.ll sqrOpt*.ll *.o *.s bench*.exe
 
 .PHONY: all ref asm hist run clean
+
+# Montgomery squaring with the reduction in the same function (mcl's Fp::sqr):
+#   make mod && ./benchMod.exe      (gen_sqrmod.py needs ../../mcl-ff and ../../mcl)
+sqrMod.ll: gen_sqrmod.py
+	python3 $< -pre llvm_ > $@
+sqrModOpt.ll: gen_sqrmod.py
+	python3 $< -pre llvmOpt_ > $@
+# -mul-constant-optimization=false as in mcl-ff: keep the multiplies by the
+# constant limbs of p as multiplies
+# opt is needed here to inline mulUnit etc. (clang -O2 does); the SLP
+# vectorizer of LLVM main hurts sqrPre_raw (readme.md), so it is off by default
+OPT?=../llvm/build.org/bin/opt
+OPTFLAGS?=-O2 -vectorize-slp=false
+sqrMod.o sqrMod.s: sqrMod.ll
+	$(OPT) $(OPTFLAGS) -S $< | $(LLC_ORG) $(LLC_FLAGS) -mul-constant-optimization=false -relocation-model=pic $(if $(filter %.o,$@),-filetype=obj) -o $@
+sqrModOpt.o sqrModOpt.s: sqrModOpt.ll
+	$(OPT) $(OPTFLAGS) -S $< | $(LLC_NEW) $(LLC_FLAGS) $(LLC_EXTRA) -mul-constant-optimization=false -relocation-model=pic $(if $(filter %.o,$@),-filetype=obj) -o $@
+benchMod.exe: benchMod.cpp sqrMod.o sqrModOpt.o
+	$(CXX) $(CXXFLAGS) -o $@ $^
+mod: benchMod.exe sqrMod.s sqrModOpt.s
+	@awk -f $(HIST_AWK) sqrMod.s sqrModOpt.s | grep -v 'mul64x64L\|mulPos\|extractHigh\|get_prime'
+.PHONY: mod

@@ -80,3 +80,21 @@ limb が i32 (mull) になる本来の 32 bit 比較。sqrOpt は元の 0.67〜0
 - llc は `../llvm/build.org/bin/llc` (main) と `../llvm/build/bin/llc` (ブランチ sqr-wide-mul) を macOS 上でビルドする (手順は memo.md 2026-09-16 (2))。
 - `sqrRef.ll` / `sqrRef32.ll` / `ref32/` は生成済みでターゲット非依存なので、work/ ごとコピーすれば mcl-ff は要らない (`make ref` を実行しなければ上書きされない)。
 - Linux で出した aarch64 のヒストグラム (`make TRIPLE=aarch64 ATTR= TAG=_a64 hist`) では sqrOpt と sqrRef はほぼ同一 (N=6: 120 / 119 命令、sp 参照 20 / 19、mul 21 + umulh 21 + adcs 25 + extr 9; N=8: 216 / 215)。元の llc は N=6 187 命令 (adds 46 / adcs 25 / cinc 36)、N=8 379 命令。
+
+## 還元が続く場合 (mcl の Fp::sqr 相当、BLS12-381-p N=6): `make mod && ./benchMod.exe`
+
+gen_sqrmod.py (mcl-ff / mcl の DSL を使う) で 3 形を生成し、`opt -O2 -vectorize-slp=false` (clang-21 相当) → llc でコンパイル。mul(x,x) は CIOS (mcl の現在の Fp::sqr)、sqrWide は `mul i768 (zext x),(zext x)` の後に emit_montRed、sqrFused は sqrPre_raw の後に emit_montRed (mcl-ff の llvm_sqr)。org = 元 llc、opt = パッチ llc。
+
+```
+               throughput      latency
+mul(x,x) org     19.215 (1.00x)   23.193
+mul(x,x) opt     19.433 (1.01x)   22.625
+sqrWide org      24.960 (1.30x)   29.321
+sqrWide opt      21.344 (1.11x)   25.481
+sqrFused org     21.995 (1.14x)   26.361
+sqrFused opt     21.489 (1.12x)   25.760
+```
+
+- パッチはワイド mul + 還元の形を 25.0 → 21.3 ns (命令 448 → 362、setb 18 → 5) に改善し、手組み融合版 (22.0) に並ぶ。IROrder が還元の命令と重なる副作用は見えない。
+- ただし CIOS (mul しながら還元) の 19.2 ns には届かない。2 乗してから還元する形は 12 limb の積が全部生きた状態で還元に入るので、乗算が 72 → 57 に減ってもスピル (sp 参照 98 → 121) に食われる (mcl-ff memo 2026-07-27 と同じ結論)。
+- 素の `opt -O2` (LLVM main) だと SLP vectorizer のせいで CIOS の mul まで 335 → 550 命令、19.2 → 32.0 ns に悪化する (opt-21 の -O2 は 335 命令で main の `-vectorize-slp=false` と同じ)。mcl を将来の clang でビルドするときは要確認。
