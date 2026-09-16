@@ -15,7 +15,7 @@ make ref        # sqrRef.ll を mcl-ff の生成済み IR から抽出 (mcl-ff �
 make            # sqr.ll / sqrOpt.ll 生成、.o、bench.exe
 make run        # taskset -c 3 ./bench.exe (正しさチェック → throughput → latency)
 make hist       # 3 変種の .s を出して関数ごとの命令ヒストグラム
-make BIT=32 ... # 32 bit unit (未検証)
+make BIT=32 TRIPLE=i686 ATTR= TAG=_i686 ref run   # 32 bit unit は i686 (-m32) でのみ意味がある
 ```
 
 `bench.exe -nolat` で latency 測定を省く。throughput は P=4 の独立ストリーム、latency は z の下位 N limb を次の x に戻す直列鎖。単位は ns/op。
@@ -47,17 +47,7 @@ latency (直列鎖) も同じ傾向 (N=6: 10.23 / 6.90 / 6.60、N=8: 19.03 / 11.
 
 参照 IR は `ref32/mulPre_llvm_n<N>.ll` (mcl-ff で `python3 src/gen_ff.py -u 32 -p $(python3 -c "print(hex((1<<(32*N-1))+1))") -pre llvm_nN_ -sqrPre` を N=2..8 で実行して保存したもの)。`make BIT=32 ref` で `sqrRef32.ll` に抽出する。
 
-### x86_64 (+bmi2) で 32 bit unit: `make BIT=32 ref bench32.exe run`
-
-LLVM は 32 bit unit の IR でも i64 limb で展開するので (N=8 の i512 は 64 bit limb 4 個)、32 bit limb で手組みした参照 (mul 36 個) は 2.4〜2.9 倍遅い。sqrOpt の効果は 64 bit limb が 3 個以上になる N=6 以降で 0.77〜0.80x。
-
-```
- N       sqr    sqrOpt    sqrRef  sqrOpt/sqr  sqrRef/sqr
- 2     1.021     0.920     1.035       0.90x       1.01x
- 4     1.091     1.091     2.833       1.00x       2.60x
- 6     2.501     1.994     6.791       0.80x       2.72x
- 8     4.361     3.358    12.559       0.77x       2.88x
-```
+x86-64 向けに BIT=32 でコンパイルするのは意味がない (LLVM が i64 limb で展開するので、32 bit limb の hand とは比較にならない)。BIT=32 は i686 (-m32) で測る。
 
 ### i686 (-m32、-mattr なし) で 32 bit unit: `make BIT=32 TRIPLE=i686 ATTR= TAG=_i686 ref run`
 
@@ -76,7 +66,7 @@ limb が i32 (mull) になる本来の 32 bit 比較。sqrOpt は元の 0.67〜0
 
 ## Apple M4 (macOS、arm64) で測るとき
 
-- `uname -m` が arm64 なら Makefile の既定は `TRIPLE=arm64-apple-macosx`、`ATTR=` (空)、ヒストグラムは `hist_a64.awk`、`run` は taskset なし。コマンドは Linux と同じ (`make ref && make && make run`、`make hist`、BIT=32 は `make BIT=32 ref bench32.exe run`)。
+- `uname -m` が arm64 なら Makefile の既定は `TRIPLE=arm64-apple-macosx`、`ATTR=` (空)、ヒストグラムは `hist_a64.awk`、`run` は taskset なし。コマンドは Linux と同じ (`make ref && make && make run`、`make hist`)。BIT=32 は 64 bit ターゲットでは無意味なので測らない。
 - llc は `../llvm/build.org/bin/llc` (main) と `../llvm/build/bin/llc` (ブランチ sqr-wide-mul) を macOS 上でビルドする (手順は memo.md 2026-09-16 (2))。
 - `sqrRef.ll` / `sqrRef32.ll` / `ref32/` は生成済みでターゲット非依存なので、work/ ごとコピーすれば mcl-ff は要らない (`make ref` を実行しなければ上書きされない)。
 - Linux で出した aarch64 のヒストグラム (`make TRIPLE=aarch64 ATTR= TAG=_a64 hist`) では sqrOpt と sqrRef はほぼ同一 (N=6: 120 / 119 命令、sp 参照 20 / 19、mul 21 + umulh 21 + adcs 25 + extr 9; N=8: 216 / 215)。元の llc は N=6 187 命令 (adds 46 / adcs 25 / cinc 36)、N=8 379 命令。
@@ -104,20 +94,7 @@ latency (直列鎖): N=6 8.34 / 5.91 / 7.28 (0.71x / 0.87x)、N=8 15.75 / 10.70 
 - ヒストグラム (`make hist`、arm64-apple-macosx): sqrOpt と sqrRef は N=2..5 と N=8 で完全に同じ命令構成 (N=6: 122 / 121、N=7: 166 / 169)。N=6 は mul 21 / umulh 21 / adcs 25 / adds 5 / cinc 4 / extr 9 / lsl 1、sp 参照 22 / 21。元の llc は N=6 203 命令 (adds 46 / adcs 25 / adc 10 / cinc 36、sp 28)、N=8 395 (sp 88、sqrOpt 218 / sp 54)。Linux の aarch64 (120 / 187 / 216 / 379) と数命令ずつ違うのは triple (Darwin の frame 周り) の差。
 - N=2 だけ sqrRef が速い (0.61 vs 0.80 ns)。命令列は 15 命令で完全に同一なので、bench 側の関数配置か分岐予測の都合 (x86 でも N=2 は差なし)。
 
-### BIT=32 (Unit = uint32_t) on M4: `make BIT=32 ref bench32.exe run`
-
-LLVM は 64 bit limb で展開するので x86-64 と同じ傾向。sqrOpt は N=4, 6, 7, 8 で 0.66〜0.79x、N=5 は 0.98x (i320 → i64 limb 5 個の境界で変化なし)。32 bit limb の手組み sqrRef は 1.4〜1.8 倍遅い。latency は N<=6 で差なし (~1.0x)、N=7, 8 で 0.76x / 0.88x。
-
-```
- N       sqr    sqrOpt    sqrRef  sqrOpt/sqr  sqrRef/sqr
- 2     0.510     0.508     0.542       1.00x       1.06x
- 3     0.557     0.557     0.804       1.00x       1.44x
- 4     0.804     0.633     1.306       0.79x       1.62x
- 5     1.263     1.237     2.040       0.98x       1.61x
- 6     1.669     1.276     3.076       0.76x       1.84x
- 7     2.977     2.032     4.174       0.68x       1.40x
- 8     3.443     2.289     5.795       0.66x       1.68x
-```
+BIT=32 は arm64 でも LLVM が i64 limb で展開するので無意味 (x86-64 と同じ理由)。
 
 ## 還元が続く場合 (mcl の Fp::sqr 相当、BLS12-381-p N=6): `make mod && ./benchMod.exe`
 

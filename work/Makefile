@@ -1,8 +1,8 @@
 # Benchmark of wide-integer squaring: original llc vs patched llc vs the
 # hand-scheduled sqrPre of mcl-ff. See readme.md.
 #   make ref && make && make run            # BIT=64, x86_64 +bmi2
-#   make BIT=32 ref bench32.exe run         # 32-bit units on x86_64
 #   make BIT=32 TRIPLE=i686 ATTR= TAG=_i686 ref run   # 32-bit units, i386 code (-m32)
+#   (BIT=32 for x86_64 is pointless: LLVM expands it with i64 limbs)
 #   on Apple M4 the defaults are TRIPLE=arm64-apple-macosx ATTR= (same commands)
 #   make TRIPLE=aarch64 ATTR= TAG=_a64 hist   # aarch64 histograms on any host
 LLC_ORG?=../llvm/build.org/bin/llc
