@@ -8,7 +8,7 @@ import argparse, re, sys
 def main():
     p = argparse.ArgumentParser()
     p.add_argument('-dir', required=True, help='directory of mulPre_llvm_n<N>.ll')
-    p.add_argument('-n', default='2,3,4,5,6,7,8')
+    p.add_argument('-n', default='2,3,4,5,6,7,8,12,16,32')
     opt = p.parse_args()
     add_xx = re.compile(r'^(%r\d+) = add (i\d+) (%r\d+), \3$')
     for n in map(int, opt.n.split(',')):

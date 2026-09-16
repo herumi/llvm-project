@@ -7,9 +7,8 @@
 #   make TRIPLE=aarch64 ATTR= TAG=_a64 hist   # aarch64 histograms on any host
 LLC_ORG?=../llvm/build.org/bin/llc
 LLC_NEW?=../llvm/build/bin/llc
-MCL_FF?=../../mcl-ff
 BIT?=64
-N_LIST=2 3 4 5 6 7 8
+N_LIST=2 3 4 5 6 7 8 12 16 32
 # host defaults: x86_64 Linux -> x86_64 +bmi2, Apple arm64 -> arm64-apple-macosx
 UNAME_M:=$(shell uname -m)
 UNAME_S:=$(shell uname -s)
@@ -44,9 +43,9 @@ TAG?=
 SFX=$(if $(filter 64,$(BIT)),,$(BIT))$(TAG)
 # the reference IR is target independent: sqrRef.ll / sqrRef32.ll
 REF_SFX=$(if $(filter 64,$(BIT)),,$(BIT))
-# where the mcl-ff generated IR with llvm_n<N>_sqrPre lives (ref32/ is made by
-# gen_ff.py -u 32, see readme.md)
-REF_DIR?=$(if $(filter 32,$(BIT)),ref32,$(MCL_FF)/src)
+# where the IR with llvm_n<N>_sqrPre lives: ref64/ and ref32/ are made by
+# mcl-ff's gen_ff.py -u 64 / -u 32 -sqrPre for each N (see readme.md)
+REF_DIR?=ref$(BIT)
 
 all: bench$(SFX).exe
 

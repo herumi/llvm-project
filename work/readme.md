@@ -11,7 +11,7 @@
 ## 使い方
 
 ```
-make ref        # sqrRef.ll を mcl-ff の生成済み IR から抽出 (mcl-ff で make 済みであること)
+make ref        # sqrRef.ll を ref64/ (mcl-ff の gen_ff.py -sqrPre の出力、コミット済み) から抽出
 make            # sqr.ll / sqrOpt.ll 生成、.o、bench.exe
 make run        # taskset -c 3 ./bench.exe (正しさチェック → throughput → latency)
 make hist       # 3 変種の .s を出して関数ごとの命令ヒストグラム
@@ -68,7 +68,7 @@ limb が i32 (mull) になる本来の 32 bit 比較。sqrOpt は元の 0.67〜0
 
 - `uname -m` が arm64 なら Makefile の既定は `TRIPLE=arm64-apple-macosx`、`ATTR=` (空)、ヒストグラムは `hist_a64.awk`、`run` は taskset なし。コマンドは Linux と同じ (`make ref && make && make run`、`make hist`)。BIT=32 は 64 bit ターゲットでは無意味なので測らない。
 - llc は `../llvm/build.org/bin/llc` (main) と `../llvm/build/bin/llc` (ブランチ sqr-wide-mul) を macOS 上でビルドする (手順は memo.md 2026-09-16 (2))。
-- `sqrRef.ll` / `sqrRef32.ll` / `ref32/` は生成済みでターゲット非依存なので、work/ ごとコピーすれば mcl-ff は要らない (`make ref` を実行しなければ上書きされない)。
+- `sqrRef.ll` / `sqrRef32.ll` と元になる `ref64/` / `ref32/` はコミット済みでターゲット非依存なので mcl-ff は要らない (`make ref` も ref64/ から抽出するだけ)。
 - Linux で出した aarch64 のヒストグラム (`make TRIPLE=aarch64 ATTR= TAG=_a64 hist`) では sqrOpt と sqrRef はほぼ同一 (N=6: 120 / 119 命令、sp 参照 20 / 19、mul 21 + umulh 21 + adcs 25 + extr 9; N=8: 216 / 215)。元の llc は N=6 187 命令 (adds 46 / adcs 25 / cinc 36)、N=8 379 命令。
 
 ## 結果 (2026-09-16、Apple M4 Pro、macOS arm64、ns/op)
@@ -113,3 +113,25 @@ sqrFused opt     21.489 (1.12x)   25.760
 - パッチはワイド mul + 還元の形を 25.0 → 21.3 ns (命令 448 → 362、setb 18 → 5) に改善し、手組み融合版 (22.0) に並ぶ。IROrder が還元の命令と重なる副作用は見えない。
 - ただし CIOS (mul しながら還元) の 19.2 ns には届かない。2 乗してから還元する形は 12 limb の積が全部生きた状態で還元に入るので、乗算が 72 → 57 に減ってもスピル (sp 参照 98 → 121) に食われる (mcl-ff memo 2026-07-27 と同じ結論)。
 - 素の `opt -O2` (LLVM main) だと SLP vectorizer のせいで CIOS の mul まで 335 → 550 命令、19.2 → 32.0 ns に悪化する (opt-21 の -O2 は 335 命令で main の `-vectorize-slp=false` と同じ)。mcl を将来の clang でビルドするときは要確認。
+
+## N = 12, 16, 32 (2026-09-16、Xeon w9-3495X、throughput ns/op)
+
+N を 2..8, 12, 16, 32 に広げた (hand の IR は mcl-ff の `gen_ff.py -u 64|32 -p 2^(uN-1)+1 -pre llvm_n<N>_ -sqrPre` で生成して `ref64/` `ref32/` に置いた)。どちらの実装にも N の上限はなく、大きい N ほど opti の効きが大きい。
+
+BIT=64、x86-64 (+bmi2):
+
+| N | org | opti | hand | opti/org | hand/org |
+|---|---|---|---|---|---|
+| 12 | 53.1 | 25.7 | 26.6 | 0.48 | 0.50 |
+| 16 | 98.4 | 51.7 | 60.6 | 0.53 | 0.62 |
+| 32 | 674.1 | 227.6 | 232.0 | 0.34 | 0.34 |
+
+命令数 (org → opti、hand): N=12 1018 → 515 (546)、N=16 1790 → 902 (953)、N=32 7318 → 3524 (3619)。setb/movzbl は org で N=32 に 341 個ずつ、opti では 0。
+
+BIT=32、i686 (-m32):
+
+| N | org | opti | hand | opti/org | hand/org |
+|---|---|---|---|---|---|
+| 12 | 69.3 | 52.3 | 54.6 | 0.75 | 0.79 |
+| 16 | 130.6 | 97.4 | 101.9 | 0.75 | 0.78 |
+| 32 | 673.0 | 395.8 | 406.2 | 0.59 | 0.60 |

@@ -10,7 +10,7 @@ def main():
     p = argparse.ArgumentParser()
     p.add_argument('-pre', default='sqr', help='function name prefix')
     p.add_argument('-u', type=int, default=64, help='unit bit size (64 or 32)')
-    p.add_argument('-n', default='2,3,4,5,6,7,8', help='comma separated limb counts')
+    p.add_argument('-n', default='2,3,4,5,6,7,8,12,16,32', help='comma separated limb counts')
     opt = p.parse_args()
     u = opt.u
     for n in map(int, opt.n.split(',')):
