@@ -12619,7 +12619,13 @@ SDValue TargetLowering::expandWideSquare(SDNode *N, SelectionDAG &DAG) const {
   if (!VT.isScalarInteger())
     return SDValue();
   LLVMContext &Ctx = *DAG.getContext();
-  SDLoc dl(N);
+  // Give every node its own increasing IR order: with the source-order
+  // scheduler (the default when the machine scheduler is enabled) this keeps
+  // the schedule below, in particular the squares of the limbs right before
+  // the final add, which roughly halves the spills compared with letting the
+  // register-reduction heuristic order nodes that all share N's IR order.
+  unsigned Order = N->getIROrder();
+  auto dl = [&]() { return SDLoc(N->getDebugLoc(), Order++); };
 
   // The limbs have the legal type that VT is ultimately expanded to.
   EVT LimbVT = getTypeToExpandTo(Ctx, VT);
@@ -12646,9 +12652,9 @@ SDValue TargetLowering::expandWideSquare(SDNode *N, SelectionDAG &DAG) const {
   // Split X into limbs in least-significant-first order.
   SmallVector<SDValue, 16> Limb(NumLimbs);
   for (unsigned I = 0; I != NumLimbs; ++I) {
-    SDValue V = DAG.getNode(ISD::SRL, dl, VT, X,
-                            DAG.getShiftAmountConstant(I * U, VT, dl));
-    Limb[I] = DAG.getNode(ISD::TRUNCATE, dl, LimbVT, V);
+    SDValue V = DAG.getNode(ISD::SRL, dl(), VT, X,
+                            DAG.getShiftAmountConstant(I * U, VT, dl()));
+    Limb[I] = DAG.getNode(ISD::TRUNCATE, dl(), LimbVT, V);
   }
 
   EVT Prod2VT = EVT::getIntegerVT(Ctx, 2 * U);
@@ -12657,24 +12663,24 @@ SDValue TargetLowering::expandWideSquare(SDNode *N, SelectionDAG &DAG) const {
   // Return A * B as BUILD_PAIR(low, high), or just low.
   auto MakeProd = [&](SDValue A, SDValue B, bool LowOnly) -> SDValue {
     if (LowOnly)
-      return DAG.getNode(ISD::MUL, dl, LimbVT, A, B);
+      return DAG.getNode(ISD::MUL, dl(), LimbVT, A, B);
     SDValue PLo, PHi;
     if (HasUMUL_LOHI) {
-      PLo =
-          DAG.getNode(ISD::UMUL_LOHI, dl, DAG.getVTList(LimbVT, LimbVT), A, B);
+      PLo = DAG.getNode(ISD::UMUL_LOHI, dl(), DAG.getVTList(LimbVT, LimbVT), A,
+                        B);
       PHi = PLo.getValue(1);
     } else {
-      PLo = DAG.getNode(ISD::MUL, dl, LimbVT, A, B);
-      PHi = DAG.getNode(ISD::MULHU, dl, LimbVT, A, B);
+      PLo = DAG.getNode(ISD::MUL, dl(), LimbVT, A, B);
+      PHi = DAG.getNode(ISD::MULHU, dl(), LimbVT, A, B);
     }
-    return DAG.getNode(ISD::BUILD_PAIR, dl, Prod2VT, PLo, PHi);
+    return DAG.getNode(ISD::BUILD_PAIR, dl(), Prod2VT, PLo, PHi);
   };
 
   // Zero-extend V and place it at limb offset Off.
   auto Place = [&](SDValue V, unsigned Off, EVT WideVT) -> SDValue {
-    V = DAG.getNode(ISD::ZERO_EXTEND, dl, WideVT, V);
-    return DAG.getNode(ISD::SHL, dl, WideVT, V,
-                       DAG.getShiftAmountConstant(Off * U, WideVT, dl));
+    V = DAG.getNode(ISD::ZERO_EXTEND, dl(), WideVT, V);
+    return DAG.getNode(ISD::SHL, dl(), WideVT, V,
+                       DAG.getShiftAmountConstant(Off * U, WideVT, dl()));
   };
 
   // Concatenate parts that do not overlap.
@@ -12684,7 +12690,7 @@ SDValue TargetLowering::expandWideSquare(SDNode *N, SelectionDAG &DAG) const {
     SDValue Acc;
     for (const auto &[V, Off] : Parts) {
       SDValue P = Place(V, Off, WideVT);
-      Acc = Acc ? DAG.getNode(ISD::OR, dl, WideVT, Acc, P, Flags) : P;
+      Acc = Acc ? DAG.getNode(ISD::OR, dl(), WideVT, Acc, P, Flags) : P;
     }
     return Acc;
   };
@@ -12723,15 +12729,15 @@ SDValue TargetLowering::expandWideSquare(SDNode *N, SelectionDAG &DAG) const {
     if (!Acc)
       Acc = Row;
     else
-      Acc = DAG.getNode(ISD::ADD, dl, RowVT, Place(Acc, 1, RowVT), Row);
+      Acc = DAG.getNode(ISD::ADD, dl(), RowVT, Place(Acc, 1, RowVT), Row);
   }
 
   // Compute Cross = Acc * 2 using a shift instead of an add to avoid
   // expanding it into a carry chain.
   unsigned W = std::min(2 * NumLimbs, R); // result limbs that can be nonzero
   EVT DblVT = LimbsVT(W - 1);
-  SDValue Dbl = DAG.getNode(ISD::SHL, dl, DblVT, Place(Acc, 0, DblVT),
-                            DAG.getShiftAmountConstant(1, DblVT, dl));
+  SDValue Dbl = DAG.getNode(ISD::SHL, dl(), DblVT, Place(Acc, 0, DblVT),
+                            DAG.getShiftAmountConstant(1, DblVT, dl()));
   EVT ZVT = LimbsVT(W);
   SDValue Cross = Place(Dbl, 1, ZVT);
 
@@ -12741,10 +12747,10 @@ SDValue TargetLowering::expandWideSquare(SDNode *N, SelectionDAG &DAG) const {
   for (unsigned I = 0; 2 * I < W; ++I)
     DiagParts.push_back(
         {MakeProd(Limb[I], Limb[I], /*LowOnly=*/2 * I + 1 >= W), 2 * I});
-  SDValue Z = DAG.getNode(ISD::ADD, dl, ZVT, Cross, Pack(DiagParts, ZVT));
+  SDValue Z = DAG.getNode(ISD::ADD, dl(), ZVT, Cross, Pack(DiagParts, ZVT));
 
   if (ZVT != VT)
-    Z = DAG.getNode(ISD::ZERO_EXTEND, dl, VT, Z);
+    Z = DAG.getNode(ISD::ZERO_EXTEND, dl(), VT, Z);
   return Z;
 }
 
