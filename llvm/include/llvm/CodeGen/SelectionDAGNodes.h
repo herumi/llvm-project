@@ -1257,6 +1257,9 @@ private:
 public:
   SDLoc() = default;
   SDLoc(const SDNode *N) : DL(N->getDebugLoc()), IROrder(N->getIROrder()) {}
+  SDLoc(const SDNode *N, int Order) : DL(N->getDebugLoc()), IROrder(Order) {
+    assert(Order >= 0 && "bad IROrder");
+  }
   SDLoc(const SDValue V) : SDLoc(V.getNode()) {}
   SDLoc(const Instruction *I, int Order) : IROrder(Order) {
     assert(Order >= 0 && "bad IROrder");

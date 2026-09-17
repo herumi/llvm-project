@@ -9,40 +9,40 @@ define void @sqr_i256(ptr %out, ptr %in) {
 ; CHECK-NEXT:    ld a3, 8(a1)
 ; CHECK-NEXT:    ld a4, 16(a1)
 ; CHECK-NEXT:    ld a1, 24(a1)
-; CHECK-NEXT:    mulhu a5, a2, a3
-; CHECK-NEXT:    mul a6, a2, a4
-; CHECK-NEXT:    mulhu a7, a2, a4
+; CHECK-NEXT:    mul a5, a2, a3
 ; CHECK-NEXT:    mul a1, a2, a1
-; CHECK-NEXT:    mul t0, a2, a3
+; CHECK-NEXT:    mulhu a6, a2, a4
+; CHECK-NEXT:    mul a7, a2, a4
+; CHECK-NEXT:    mulhu t0, a2, a3
+; CHECK-NEXT:    mulhu t1, a2, a2
 ; CHECK-NEXT:    mul a4, a3, a4
-; CHECK-NEXT:    mul t1, a3, a3
-; CHECK-NEXT:    mulhu t2, a2, a2
-; CHECK-NEXT:    mulhu a3, a3, a3
 ; CHECK-NEXT:    mul a2, a2, a2
-; CHECK-NEXT:    add a5, a6, a5
-; CHECK-NEXT:    add a1, a1, a7
-; CHECK-NEXT:    srli a7, t0, 63
-; CHECK-NEXT:    slli t0, t0, 1
-; CHECK-NEXT:    add a1, a1, a4
-; CHECK-NEXT:    slli a4, a5, 1
-; CHECK-NEXT:    sltu a6, a5, a6
-; CHECK-NEXT:    srli a5, a5, 63
-; CHECK-NEXT:    add t2, t0, t2
-; CHECK-NEXT:    or a4, a4, a7
+; CHECK-NEXT:    mul t2, a3, a3
+; CHECK-NEXT:    mulhu a3, a3, a3
 ; CHECK-NEXT:    add a1, a1, a6
-; CHECK-NEXT:    sltu a6, t2, t0
-; CHECK-NEXT:    add t1, a4, t1
+; CHECK-NEXT:    slli a6, a5, 1
+; CHECK-NEXT:    add t0, a7, t0
+; CHECK-NEXT:    srli a5, a5, 63
+; CHECK-NEXT:    add t1, a6, t1
+; CHECK-NEXT:    add a1, a1, a4
+; CHECK-NEXT:    slli a4, t0, 1
+; CHECK-NEXT:    sltu a7, t0, a7
+; CHECK-NEXT:    srli t0, t0, 63
+; CHECK-NEXT:    or a4, a4, a5
+; CHECK-NEXT:    sltu a5, t1, a6
+; CHECK-NEXT:    add a1, a1, a7
+; CHECK-NEXT:    add t2, a4, t2
 ; CHECK-NEXT:    slli a1, a1, 1
-; CHECK-NEXT:    sltu a4, t1, a4
-; CHECK-NEXT:    or a1, a1, a5
-; CHECK-NEXT:    add a6, t1, a6
+; CHECK-NEXT:    add a5, t2, a5
+; CHECK-NEXT:    or a1, a1, t0
+; CHECK-NEXT:    sltu a4, t2, a4
 ; CHECK-NEXT:    add a1, a1, a3
-; CHECK-NEXT:    sltu a3, a6, t1
+; CHECK-NEXT:    sltu a3, a5, t2
 ; CHECK-NEXT:    add a1, a1, a4
 ; CHECK-NEXT:    add a1, a1, a3
 ; CHECK-NEXT:    sd a2, 0(a0)
-; CHECK-NEXT:    sd t2, 8(a0)
-; CHECK-NEXT:    sd a6, 16(a0)
+; CHECK-NEXT:    sd t1, 8(a0)
+; CHECK-NEXT:    sd a5, 16(a0)
 ; CHECK-NEXT:    sd a1, 24(a0)
 ; CHECK-NEXT:    ret
   %x = load i256, ptr %in
@@ -55,173 +55,165 @@ define void @sqr_i256(ptr %out, ptr %in) {
 define void @sqr_i512_zext_i256(ptr %out, ptr %in) {
 ; CHECK-LABEL: sqr_i512_zext_i256:
 ; CHECK:       # %bb.0:
-; CHECK-NEXT:    addi sp, sp, -64
-; CHECK-NEXT:    .cfi_def_cfa_offset 64
-; CHECK-NEXT:    sd s0, 56(sp) # 8-byte Folded Spill
-; CHECK-NEXT:    sd s1, 48(sp) # 8-byte Folded Spill
-; CHECK-NEXT:    sd s2, 40(sp) # 8-byte Folded Spill
-; CHECK-NEXT:    sd s3, 32(sp) # 8-byte Folded Spill
-; CHECK-NEXT:    sd s4, 24(sp) # 8-byte Folded Spill
-; CHECK-NEXT:    sd s5, 16(sp) # 8-byte Folded Spill
-; CHECK-NEXT:    sd s6, 8(sp) # 8-byte Folded Spill
-; CHECK-NEXT:    sd s7, 0(sp) # 8-byte Folded Spill
+; CHECK-NEXT:    addi sp, sp, -48
+; CHECK-NEXT:    .cfi_def_cfa_offset 48
+; CHECK-NEXT:    sd s0, 40(sp) # 8-byte Folded Spill
+; CHECK-NEXT:    sd s1, 32(sp) # 8-byte Folded Spill
+; CHECK-NEXT:    sd s2, 24(sp) # 8-byte Folded Spill
+; CHECK-NEXT:    sd s3, 16(sp) # 8-byte Folded Spill
+; CHECK-NEXT:    sd s4, 8(sp) # 8-byte Folded Spill
+; CHECK-NEXT:    sd s5, 0(sp) # 8-byte Folded Spill
 ; CHECK-NEXT:    .cfi_offset s0, -8
 ; CHECK-NEXT:    .cfi_offset s1, -16
 ; CHECK-NEXT:    .cfi_offset s2, -24
 ; CHECK-NEXT:    .cfi_offset s3, -32
 ; CHECK-NEXT:    .cfi_offset s4, -40
 ; CHECK-NEXT:    .cfi_offset s5, -48
-; CHECK-NEXT:    .cfi_offset s6, -56
-; CHECK-NEXT:    .cfi_offset s7, -64
-; CHECK-NEXT:    ld a4, 16(a1)
-; CHECK-NEXT:    ld a3, 24(a1)
-; CHECK-NEXT:    ld a2, 0(a1)
-; CHECK-NEXT:    ld a5, 8(a1)
-; CHECK-NEXT:    mulhu a1, a2, a4
-; CHECK-NEXT:    mul a6, a2, a3
-; CHECK-NEXT:    mul t3, a5, a3
-; CHECK-NEXT:    mulhu t1, a2, a3
-; CHECK-NEXT:    mulhu a7, a2, a5
-; CHECK-NEXT:    mul t0, a2, a4
-; CHECK-NEXT:    mul t2, a5, a4
-; CHECK-NEXT:    mulhu t4, a5, a4
-; CHECK-NEXT:    add a1, a6, a1
-; CHECK-NEXT:    add t3, t1, t3
-; CHECK-NEXT:    add a7, t0, a7
-; CHECK-NEXT:    add t6, a1, t2
-; CHECK-NEXT:    sltu t5, a1, a6
-; CHECK-NEXT:    sltu a6, t6, a1
-; CHECK-NEXT:    add t5, t3, t5
-; CHECK-NEXT:    sltu t0, a7, t0
-; CHECK-NEXT:    mul s0, a4, a4
-; CHECK-NEXT:    add t4, t5, t4
-; CHECK-NEXT:    add t2, t6, t0
-; CHECK-NEXT:    add a6, t4, a6
-; CHECK-NEXT:    sltu t4, t2, t6
-; CHECK-NEXT:    add t4, a6, t4
-; CHECK-NEXT:    slli a6, t4, 1
-; CHECK-NEXT:    srli t6, t2, 63
-; CHECK-NEXT:    or t6, a6, t6
-; CHECK-NEXT:    add a6, t6, s0
-; CHECK-NEXT:    beq t4, t5, .LBB1_2
+; CHECK-NEXT:    ld a4, 0(a1)
+; CHECK-NEXT:    ld a3, 8(a1)
+; CHECK-NEXT:    ld a2, 16(a1)
+; CHECK-NEXT:    ld a1, 24(a1)
+; CHECK-NEXT:    mul a5, a4, a3
+; CHECK-NEXT:    mul a6, a4, a2
+; CHECK-NEXT:    mulhu t0, a4, a3
+; CHECK-NEXT:    mul t1, a4, a1
+; CHECK-NEXT:    mulhu t2, a4, a2
+; CHECK-NEXT:    mulhu t3, a4, a4
+; CHECK-NEXT:    mul s1, a4, a4
+; CHECK-NEXT:    mul t4, a3, a2
+; CHECK-NEXT:    mul t5, a3, a3
+; CHECK-NEXT:    mulhu t6, a3, a3
+; CHECK-NEXT:    mulhu a7, a4, a1
+; CHECK-NEXT:    mul s0, a3, a1
+; CHECK-NEXT:    slli s2, a5, 1
+; CHECK-NEXT:    add t0, a6, t0
+; CHECK-NEXT:    srli s3, a5, 63
+; CHECK-NEXT:    add a5, t1, t2
+; CHECK-NEXT:    add s4, s2, t3
+; CHECK-NEXT:    slli t2, t0, 1
+; CHECK-NEXT:    sltu a4, t0, a6
+; CHECK-NEXT:    add s5, a5, t4
+; CHECK-NEXT:    or t3, t2, s3
+; CHECK-NEXT:    add a6, s5, a4
+; CHECK-NEXT:    sltu t2, s4, s2
+; CHECK-NEXT:    slli t4, a6, 1
+; CHECK-NEXT:    srli t0, t0, 63
+; CHECK-NEXT:    mulhu s2, a3, a2
+; CHECK-NEXT:    add s3, t3, t5
+; CHECK-NEXT:    or t5, t4, t0
+; CHECK-NEXT:    sltu t0, s3, t3
+; CHECK-NEXT:    add t4, t5, t6
+; CHECK-NEXT:    add t6, s3, t2
+; CHECK-NEXT:    add t0, t4, t0
+; CHECK-NEXT:    add t4, a7, s0
+; CHECK-NEXT:    sltu t1, a5, t1
+; CHECK-NEXT:    sltu s0, t6, s3
+; CHECK-NEXT:    add t1, t4, t1
+; CHECK-NEXT:    sltu s3, s5, a5
+; CHECK-NEXT:    add s2, t1, s2
+; CHECK-NEXT:    add s0, t0, s0
+; CHECK-NEXT:    add t0, s2, s3
+; CHECK-NEXT:    sltu s2, a6, s5
+; CHECK-NEXT:    sd s1, 0(a0)
+; CHECK-NEXT:    sd s4, 8(a0)
+; CHECK-NEXT:    sd t6, 16(a0)
+; CHECK-NEXT:    sd s0, 24(a0)
+; CHECK-NEXT:    add t0, t0, s2
+; CHECK-NEXT:    slli s1, t0, 1
+; CHECK-NEXT:    srli s2, a6, 63
+; CHECK-NEXT:    beq s0, t5, .LBB1_2
 ; CHECK-NEXT:  # %bb.1:
-; CHECK-NEXT:    sltu s0, t4, t5
+; CHECK-NEXT:    sltu s3, s0, t5
 ; CHECK-NEXT:    j .LBB1_3
 ; CHECK-NEXT:  .LBB1_2:
-; CHECK-NEXT:    sltu s0, t2, a1
+; CHECK-NEXT:    sltu s3, t6, t3
 ; CHECK-NEXT:  .LBB1_3:
-; CHECK-NEXT:    xor s1, t4, t5
-; CHECK-NEXT:    xor a1, t2, a1
-; CHECK-NEXT:    or s1, a1, s1
-; CHECK-NEXT:    sltu a1, a6, t6
-; CHECK-NEXT:    beqz s1, .LBB1_5
+; CHECK-NEXT:    mul s4, a2, a2
+; CHECK-NEXT:    xor t5, s0, t5
+; CHECK-NEXT:    xor t3, t6, t3
+; CHECK-NEXT:    or t5, t3, t5
+; CHECK-NEXT:    or t3, s1, s2
+; CHECK-NEXT:    beqz t5, .LBB1_5
 ; CHECK-NEXT:  # %bb.4:
-; CHECK-NEXT:    mv t0, s0
+; CHECK-NEXT:    mv t2, s3
 ; CHECK-NEXT:  .LBB1_5:
-; CHECK-NEXT:    mulhu t6, a5, a3
-; CHECK-NEXT:    sltu t5, t5, t3
-; CHECK-NEXT:    mul s0, a4, a3
-; CHECK-NEXT:    sltu t1, t3, t1
-; CHECK-NEXT:    mul s1, a2, a5
-; CHECK-NEXT:    srli s2, t4, 63
-; CHECK-NEXT:    mulhu s3, a4, a4
-; CHECK-NEXT:    slli t4, a7, 1
-; CHECK-NEXT:    mul s4, a5, a5
-; CHECK-NEXT:    slli s5, t2, 1
-; CHECK-NEXT:    add t1, t1, t5
-; CHECK-NEXT:    mulhu s6, a2, a2
-; CHECK-NEXT:    add t1, t6, t1
-; CHECK-NEXT:    mulhu s7, a5, a5
-; CHECK-NEXT:    add t2, t1, s0
-; CHECK-NEXT:    srli a5, s1, 63
-; CHECK-NEXT:    add t3, t2, t0
-; CHECK-NEXT:    or t4, t4, a5
-; CHECK-NEXT:    slli a5, t3, 1
-; CHECK-NEXT:    add s4, t4, s4
-; CHECK-NEXT:    or t5, a5, s2
-; CHECK-NEXT:    sltu t0, s4, t4
-; CHECK-NEXT:    slli t6, s1, 1
-; CHECK-NEXT:    srli a7, a7, 63
-; CHECK-NEXT:    add a5, t6, s6
-; CHECK-NEXT:    or s1, s5, a7
-; CHECK-NEXT:    sltu t6, a5, t6
-; CHECK-NEXT:    add s7, s1, s7
-; CHECK-NEXT:    add a7, s4, t6
-; CHECK-NEXT:    add t0, s7, t0
-; CHECK-NEXT:    sltu s0, a7, s4
-; CHECK-NEXT:    add s3, s3, a1
-; CHECK-NEXT:    add t0, t0, s0
-; CHECK-NEXT:    add s0, t5, s3
-; CHECK-NEXT:    beq t0, s1, .LBB1_7
+; CHECK-NEXT:    mulhu t5, a3, a1
+; CHECK-NEXT:    add a3, t3, s4
+; CHECK-NEXT:    add t2, a3, t2
+; CHECK-NEXT:    sltu t6, t1, t4
+; CHECK-NEXT:    sltu a7, t4, a7
+; CHECK-NEXT:    sd t2, 32(a0)
+; CHECK-NEXT:    add a7, a7, t6
+; CHECK-NEXT:    beq t0, t1, .LBB1_7
 ; CHECK-NEXT:  # %bb.6:
-; CHECK-NEXT:    sltu s2, t0, s1
+; CHECK-NEXT:    sltu t4, t0, t1
 ; CHECK-NEXT:    j .LBB1_8
 ; CHECK-NEXT:  .LBB1_7:
-; CHECK-NEXT:    sltu s2, a7, t4
+; CHECK-NEXT:    sltu t4, a6, a5
 ; CHECK-NEXT:  .LBB1_8:
-; CHECK-NEXT:    xor s1, t0, s1
-; CHECK-NEXT:    xor t4, a7, t4
-; CHECK-NEXT:    or t4, t4, s1
-; CHECK-NEXT:    beqz t4, .LBB1_10
+; CHECK-NEXT:    mul t6, a2, a1
+; CHECK-NEXT:    xor a5, a6, a5
+; CHECK-NEXT:    xor a6, t0, t1
+; CHECK-NEXT:    or a5, a5, a6
+; CHECK-NEXT:    add a6, t5, a7
+; CHECK-NEXT:    beqz a5, .LBB1_10
 ; CHECK-NEXT:  # %bb.9:
-; CHECK-NEXT:    mv t6, s2
+; CHECK-NEXT:    mv a4, t4
 ; CHECK-NEXT:  .LBB1_10:
-; CHECK-NEXT:    add t4, a6, t6
-; CHECK-NEXT:    sltu t6, t4, a6
-; CHECK-NEXT:    add a6, s0, t6
-; CHECK-NEXT:    sltu s1, a6, s0
-; CHECK-NEXT:    and t6, t6, s1
-; CHECK-NEXT:    beq s0, t5, .LBB1_12
-; CHECK-NEXT:  # %bb.11:
-; CHECK-NEXT:    sltu a1, s0, t5
-; CHECK-NEXT:  .LBB1_12:
-; CHECK-NEXT:    mulhu a4, a4, a3
-; CHECK-NEXT:    mul t5, a3, a3
-; CHECK-NEXT:    mulhu a3, a3, a3
-; CHECK-NEXT:    sltu t1, t2, t1
-; CHECK-NEXT:    sltu t2, t3, t2
-; CHECK-NEXT:    add t1, t1, t2
-; CHECK-NEXT:    srli t2, t3, 63
-; CHECK-NEXT:    add a4, a4, t1
-; CHECK-NEXT:    mul a2, a2, a2
-; CHECK-NEXT:    slli t1, a4, 1
+; CHECK-NEXT:    add t6, a6, t6
+; CHECK-NEXT:    srli a7, t0, 63
+; CHECK-NEXT:    mulhu t0, a2, a2
+; CHECK-NEXT:    sltu a5, a3, t3
+; CHECK-NEXT:    mulhu t1, a2, a1
+; CHECK-NEXT:    add a4, t6, a4
+; CHECK-NEXT:    sltu t2, t2, a3
+; CHECK-NEXT:    slli a2, a4, 1
+; CHECK-NEXT:    sltu a3, a4, t6
+; CHECK-NEXT:    or a2, a2, a7
+; CHECK-NEXT:    sltu a7, t6, a6
+; CHECK-NEXT:    add t3, a2, a5
+; CHECK-NEXT:    mul a6, a1, a1
+; CHECK-NEXT:    add t0, t3, t0
+; CHECK-NEXT:    add a3, a7, a3
+; CHECK-NEXT:    add a7, t0, t2
+; CHECK-NEXT:    add a3, t1, a3
+; CHECK-NEXT:    sd a7, 40(a0)
 ; CHECK-NEXT:    srli a4, a4, 63
-; CHECK-NEXT:    or t1, t1, t2
-; CHECK-NEXT:    add a3, a4, a3
-; CHECK-NEXT:    add t5, t1, t5
-; CHECK-NEXT:    add a1, t5, a1
-; CHECK-NEXT:    sltu a4, t5, t1
-; CHECK-NEXT:    add t6, a1, t6
-; CHECK-NEXT:    add a3, a3, a4
-; CHECK-NEXT:    sltu a4, a1, t5
-; CHECK-NEXT:    sltu a1, t6, a1
-; CHECK-NEXT:    add a3, a3, a4
-; CHECK-NEXT:    sd a2, 0(a0)
-; CHECK-NEXT:    sd a5, 8(a0)
-; CHECK-NEXT:    sd a7, 16(a0)
-; CHECK-NEXT:    sd t0, 24(a0)
-; CHECK-NEXT:    add a1, a3, a1
-; CHECK-NEXT:    sd t4, 32(a0)
-; CHECK-NEXT:    sd a6, 40(a0)
-; CHECK-NEXT:    sd t6, 48(a0)
+; CHECK-NEXT:    slli t1, a3, 1
+; CHECK-NEXT:    sltu a7, a7, t0
+; CHECK-NEXT:    or a4, t1, a4
+; CHECK-NEXT:    and a7, t2, a7
+; CHECK-NEXT:    beq t0, a2, .LBB1_12
+; CHECK-NEXT:  # %bb.11:
+; CHECK-NEXT:    sltu a5, t0, a2
+; CHECK-NEXT:  .LBB1_12:
+; CHECK-NEXT:    add a6, a4, a6
+; CHECK-NEXT:    mulhu a1, a1, a1
+; CHECK-NEXT:    add a5, a6, a5
+; CHECK-NEXT:    add a7, a5, a7
+; CHECK-NEXT:    srli a3, a3, 63
+; CHECK-NEXT:    sltu a2, a6, a4
+; CHECK-NEXT:    add a2, a3, a2
+; CHECK-NEXT:    sltu a3, a5, a6
+; CHECK-NEXT:    sltu a4, a7, a5
+; CHECK-NEXT:    add a2, a2, a3
+; CHECK-NEXT:    add a2, a2, a4
+; CHECK-NEXT:    add a1, a2, a1
+; CHECK-NEXT:    sd a7, 48(a0)
 ; CHECK-NEXT:    sd a1, 56(a0)
-; CHECK-NEXT:    ld s0, 56(sp) # 8-byte Folded Reload
-; CHECK-NEXT:    ld s1, 48(sp) # 8-byte Folded Reload
-; CHECK-NEXT:    ld s2, 40(sp) # 8-byte Folded Reload
-; CHECK-NEXT:    ld s3, 32(sp) # 8-byte Folded Reload
-; CHECK-NEXT:    ld s4, 24(sp) # 8-byte Folded Reload
-; CHECK-NEXT:    ld s5, 16(sp) # 8-byte Folded Reload
-; CHECK-NEXT:    ld s6, 8(sp) # 8-byte Folded Reload
-; CHECK-NEXT:    ld s7, 0(sp) # 8-byte Folded Reload
+; CHECK-NEXT:    ld s0, 40(sp) # 8-byte Folded Reload
+; CHECK-NEXT:    ld s1, 32(sp) # 8-byte Folded Reload
+; CHECK-NEXT:    ld s2, 24(sp) # 8-byte Folded Reload
+; CHECK-NEXT:    ld s3, 16(sp) # 8-byte Folded Reload
+; CHECK-NEXT:    ld s4, 8(sp) # 8-byte Folded Reload
+; CHECK-NEXT:    ld s5, 0(sp) # 8-byte Folded Reload
 ; CHECK-NEXT:    .cfi_restore s0
 ; CHECK-NEXT:    .cfi_restore s1
 ; CHECK-NEXT:    .cfi_restore s2
 ; CHECK-NEXT:    .cfi_restore s3
 ; CHECK-NEXT:    .cfi_restore s4
 ; CHECK-NEXT:    .cfi_restore s5
-; CHECK-NEXT:    .cfi_restore s6
-; CHECK-NEXT:    .cfi_restore s7
-; CHECK-NEXT:    addi sp, sp, 64
+; CHECK-NEXT:    addi sp, sp, 48
 ; CHECK-NEXT:    .cfi_def_cfa_offset 0
 ; CHECK-NEXT:    ret
   %x = load i256, ptr %in
@@ -235,21 +227,21 @@ define void @sqr_i512_zext_i256(ptr %out, ptr %in) {
 define void @sqr_i768_zext_i384(ptr %out, ptr %in) {
 ; CHECK-LABEL: sqr_i768_zext_i384:
 ; CHECK:       # %bb.0:
-; CHECK-NEXT:    addi sp, sp, -112
-; CHECK-NEXT:    .cfi_def_cfa_offset 112
-; CHECK-NEXT:    sd ra, 104(sp) # 8-byte Folded Spill
-; CHECK-NEXT:    sd s0, 96(sp) # 8-byte Folded Spill
-; CHECK-NEXT:    sd s1, 88(sp) # 8-byte Folded Spill
-; CHECK-NEXT:    sd s2, 80(sp) # 8-byte Folded Spill
-; CHECK-NEXT:    sd s3, 72(sp) # 8-byte Folded Spill
-; CHECK-NEXT:    sd s4, 64(sp) # 8-byte Folded Spill
-; CHECK-NEXT:    sd s5, 56(sp) # 8-byte Folded Spill
-; CHECK-NEXT:    sd s6, 48(sp) # 8-byte Folded Spill
-; CHECK-NEXT:    sd s7, 40(sp) # 8-byte Folded Spill
-; CHECK-NEXT:    sd s8, 32(sp) # 8-byte Folded Spill
-; CHECK-NEXT:    sd s9, 24(sp) # 8-byte Folded Spill
-; CHECK-NEXT:    sd s10, 16(sp) # 8-byte Folded Spill
-; CHECK-NEXT:    sd s11, 8(sp) # 8-byte Folded Spill
+; CHECK-NEXT:    addi sp, sp, -160
+; CHECK-NEXT:    .cfi_def_cfa_offset 160
+; CHECK-NEXT:    sd ra, 152(sp) # 8-byte Folded Spill
+; CHECK-NEXT:    sd s0, 144(sp) # 8-byte Folded Spill
+; CHECK-NEXT:    sd s1, 136(sp) # 8-byte Folded Spill
+; CHECK-NEXT:    sd s2, 128(sp) # 8-byte Folded Spill
+; CHECK-NEXT:    sd s3, 120(sp) # 8-byte Folded Spill
+; CHECK-NEXT:    sd s4, 112(sp) # 8-byte Folded Spill
+; CHECK-NEXT:    sd s5, 104(sp) # 8-byte Folded Spill
+; CHECK-NEXT:    sd s6, 96(sp) # 8-byte Folded Spill
+; CHECK-NEXT:    sd s7, 88(sp) # 8-byte Folded Spill
+; CHECK-NEXT:    sd s8, 80(sp) # 8-byte Folded Spill
+; CHECK-NEXT:    sd s9, 72(sp) # 8-byte Folded Spill
+; CHECK-NEXT:    sd s10, 64(sp) # 8-byte Folded Spill
+; CHECK-NEXT:    sd s11, 56(sp) # 8-byte Folded Spill
 ; CHECK-NEXT:    .cfi_offset ra, -8
 ; CHECK-NEXT:    .cfi_offset s0, -16
 ; CHECK-NEXT:    .cfi_offset s1, -24
@@ -263,374 +255,387 @@ define void @sqr_i768_zext_i384(ptr %out, ptr %in) {
 ; CHECK-NEXT:    .cfi_offset s9, -88
 ; CHECK-NEXT:    .cfi_offset s10, -96
 ; CHECK-NEXT:    .cfi_offset s11, -104
-; CHECK-NEXT:    ld a5, 24(a1)
-; CHECK-NEXT:    ld a2, 0(a1)
-; CHECK-NEXT:    ld a4, 32(a1)
-; CHECK-NEXT:    ld a3, 40(a1)
+; CHECK-NEXT:    ld t1, 0(a1)
+; CHECK-NEXT:    ld t3, 8(a1)
 ; CHECK-NEXT:    ld a6, 16(a1)
-; CHECK-NEXT:    ld a1, 8(a1)
-; CHECK-NEXT:    mulhu t4, a2, a5
-; CHECK-NEXT:    mul t0, a2, a4
-; CHECK-NEXT:    mulhu s2, a2, a4
-; CHECK-NEXT:    mul t1, a2, a3
-; CHECK-NEXT:    mulhu a7, a2, a6
-; CHECK-NEXT:    mul t3, a2, a5
-; CHECK-NEXT:    mul t2, a1, a5
-; CHECK-NEXT:    mul t6, a1, a4
-; CHECK-NEXT:    mulhu s0, a1, a5
-; CHECK-NEXT:    mul s4, a6, a5
-; CHECK-NEXT:    add t4, t0, t4
-; CHECK-NEXT:    add s2, t1, s2
-; CHECK-NEXT:    add t5, t3, a7
-; CHECK-NEXT:    add s5, t4, t2
-; CHECK-NEXT:    sltu a7, t4, t0
-; CHECK-NEXT:    add t2, s2, t6
-; CHECK-NEXT:    sltu t0, s5, t4
-; CHECK-NEXT:    add s3, t2, a7
-; CHECK-NEXT:    sltu s1, t5, t3
-; CHECK-NEXT:    add s0, s3, s0
-; CHECK-NEXT:    add s6, s5, s1
-; CHECK-NEXT:    add t0, s0, t0
-; CHECK-NEXT:    sltu t3, s6, s5
-; CHECK-NEXT:    add t3, t0, t3
-; CHECK-NEXT:    add t0, t3, s4
-; CHECK-NEXT:    beq t3, s3, .LBB2_2
+; CHECK-NEXT:    ld a3, 24(a1)
+; CHECK-NEXT:    mul a4, t1, t3
+; CHECK-NEXT:    mul a5, t1, a6
+; CHECK-NEXT:    mulhu a7, t1, t3
+; CHECK-NEXT:    mul t0, t1, a3
+; CHECK-NEXT:    mulhu t2, t1, a6
+; CHECK-NEXT:    mulhu t4, t1, t1
+; CHECK-NEXT:    mul t5, t3, a6
+; CHECK-NEXT:    ld a2, 32(a1)
+; CHECK-NEXT:    ld a1, 40(a1)
+; CHECK-NEXT:    mul s0, t1, t1
+; CHECK-NEXT:    mul s1, t3, t3
+; CHECK-NEXT:    mulhu s2, t3, t3
+; CHECK-NEXT:    slli t6, a4, 1
+; CHECK-NEXT:    add s3, a5, a7
+; CHECK-NEXT:    srli a4, a4, 63
+; CHECK-NEXT:    add a7, t0, t2
+; CHECK-NEXT:    add s4, t6, t4
+; CHECK-NEXT:    slli t2, s3, 1
+; CHECK-NEXT:    sltu s9, s3, a5
+; CHECK-NEXT:    add s5, a7, t5
+; CHECK-NEXT:    or a5, t2, a4
+; CHECK-NEXT:    sltu s10, s4, t6
+; CHECK-NEXT:    mul a4, t1, a2
+; CHECK-NEXT:    mulhu t5, t1, a3
+; CHECK-NEXT:    add t6, s5, s9
+; CHECK-NEXT:    mul s6, t3, a3
+; CHECK-NEXT:    add s7, a5, s1
+; CHECK-NEXT:    slli t4, t6, 1
+; CHECK-NEXT:    srli s1, s3, 63
+; CHECK-NEXT:    mulhu s8, t3, a6
+; CHECK-NEXT:    add t2, s7, s10
+; CHECK-NEXT:    or s1, t4, s1
+; CHECK-NEXT:    sltu t4, s7, a5
+; CHECK-NEXT:    add s2, s1, s2
+; CHECK-NEXT:    add s2, s2, t4
+; CHECK-NEXT:    add t5, a4, t5
+; CHECK-NEXT:    sltu t4, a7, t0
+; CHECK-NEXT:    add t0, t5, s6
+; CHECK-NEXT:    sltu s6, t2, s7
+; CHECK-NEXT:    add s3, t0, t4
+; CHECK-NEXT:    sltu s7, s5, a7
+; CHECK-NEXT:    add s8, s3, s8
+; CHECK-NEXT:    add s2, s2, s6
+; CHECK-NEXT:    add s7, s8, s7
+; CHECK-NEXT:    sltu s5, t6, s5
+; CHECK-NEXT:    sd s0, 0(a0)
+; CHECK-NEXT:    sd s4, 8(a0)
+; CHECK-NEXT:    sd t2, 16(a0)
+; CHECK-NEXT:    sd s2, 24(a0)
+; CHECK-NEXT:    add s0, s7, s5
+; CHECK-NEXT:    slli s5, s0, 1
+; CHECK-NEXT:    srli s6, t6, 63
+; CHECK-NEXT:    beq s2, s1, .LBB2_2
 ; CHECK-NEXT:  # %bb.1:
-; CHECK-NEXT:    sltu t6, t3, s3
+; CHECK-NEXT:    sltu s7, s2, s1
 ; CHECK-NEXT:    j .LBB2_3
 ; CHECK-NEXT:  .LBB2_2:
-; CHECK-NEXT:    sltu t6, s6, t4
+; CHECK-NEXT:    sltu s7, t2, a5
 ; CHECK-NEXT:  .LBB2_3:
-; CHECK-NEXT:    sd a7, 0(sp) # 8-byte Folded Spill
-; CHECK-NEXT:    xor s0, t3, s3
-; CHECK-NEXT:    xor t4, s6, t4
-; CHECK-NEXT:    or t4, t4, s0
-; CHECK-NEXT:    sltu s0, t0, t3
-; CHECK-NEXT:    beqz t4, .LBB2_5
+; CHECK-NEXT:    mul s4, a6, a6
+; CHECK-NEXT:    xor s1, s2, s1
+; CHECK-NEXT:    xor a5, t2, a5
+; CHECK-NEXT:    or a5, a5, s1
+; CHECK-NEXT:    or s1, s5, s6
+; CHECK-NEXT:    beqz a5, .LBB2_5
 ; CHECK-NEXT:  # %bb.4:
-; CHECK-NEXT:    mv s1, t6
+; CHECK-NEXT:    mv s10, s7
 ; CHECK-NEXT:  .LBB2_5:
-; CHECK-NEXT:    mul s7, a1, a3
-; CHECK-NEXT:    mulhu s4, a2, a3
-; CHECK-NEXT:    mulhu t4, a1, a4
-; CHECK-NEXT:    sltu t6, t2, s2
-; CHECK-NEXT:    mul s5, a1, a6
-; CHECK-NEXT:    sltu s8, s2, t1
-; CHECK-NEXT:    mul t1, a6, a4
-; CHECK-NEXT:    mulhu s10, a2, a1
-; CHECK-NEXT:    mul s11, a2, a6
-; CHECK-NEXT:    sltu t2, s3, t2
-; CHECK-NEXT:    mulhu ra, a1, a6
-; CHECK-NEXT:    add s7, s4, s7
-; CHECK-NEXT:    add t4, t4, t6
-; CHECK-NEXT:    mulhu t6, a6, a5
-; CHECK-NEXT:    add s8, s7, s8
-; CHECK-NEXT:    add t2, t4, t2
-; CHECK-NEXT:    add a7, t5, s5
-; CHECK-NEXT:    add s9, s8, t2
-; CHECK-NEXT:    sltu t4, a7, t5
-; CHECK-NEXT:    add s5, s9, t1
-; CHECK-NEXT:    add t2, s11, s10
-; CHECK-NEXT:    add ra, s6, ra
-; CHECK-NEXT:    sltu t1, t2, s11
-; CHECK-NEXT:    add ra, ra, t4
-; CHECK-NEXT:    add t4, a7, t1
-; CHECK-NEXT:    add s1, s5, s1
-; CHECK-NEXT:    sltu a7, t4, a7
-; CHECK-NEXT:    add s10, t6, s0
-; CHECK-NEXT:    add t6, ra, a7
-; CHECK-NEXT:    add s10, s1, s10
-; CHECK-NEXT:    beq t6, s6, .LBB2_7
+; CHECK-NEXT:    mul a5, t1, a1
+; CHECK-NEXT:    mulhu s2, t1, a2
+; CHECK-NEXT:    mul s6, t3, a2
+; CHECK-NEXT:    mulhu s5, t3, a3
+; CHECK-NEXT:    add t2, s1, s4
+; CHECK-NEXT:    sltu s7, t5, a4
+; CHECK-NEXT:    sltu a4, t0, t5
+; CHECK-NEXT:    add s11, t2, s10
+; CHECK-NEXT:    add s2, a5, s2
+; CHECK-NEXT:    sd s11, 32(a0)
+; CHECK-NEXT:    add s6, s2, s6
+; CHECK-NEXT:    add a4, s5, a4
+; CHECK-NEXT:    sltu t0, s3, t0
+; CHECK-NEXT:    add s4, s6, s7
+; CHECK-NEXT:    add a4, a4, t0
+; CHECK-NEXT:    sd s7, 24(sp) # 8-byte Folded Spill
+; CHECK-NEXT:    beq s0, s3, .LBB2_7
 ; CHECK-NEXT:  # %bb.6:
-; CHECK-NEXT:    sltu s11, t6, s6
+; CHECK-NEXT:    sltu t0, s0, s3
 ; CHECK-NEXT:    j .LBB2_8
 ; CHECK-NEXT:  .LBB2_7:
-; CHECK-NEXT:    sltu s11, t4, t5
+; CHECK-NEXT:    sltu t0, t6, a7
 ; CHECK-NEXT:  .LBB2_8:
-; CHECK-NEXT:    xor a7, t6, s6
-; CHECK-NEXT:    xor t5, t4, t5
-; CHECK-NEXT:    or a7, t5, a7
-; CHECK-NEXT:    beqz a7, .LBB2_10
+; CHECK-NEXT:    mul s5, a6, a3
+; CHECK-NEXT:    xor s7, s0, s3
+; CHECK-NEXT:    xor a7, t6, a7
+; CHECK-NEXT:    or t6, a7, s7
+; CHECK-NEXT:    add a7, s4, a4
+; CHECK-NEXT:    beqz t6, .LBB2_10
 ; CHECK-NEXT:  # %bb.9:
-; CHECK-NEXT:    mv t1, s11
+; CHECK-NEXT:    mv s9, t0
 ; CHECK-NEXT:  .LBB2_10:
-; CHECK-NEXT:    add a7, t0, t1
-; CHECK-NEXT:    sltu s6, a7, t0
-; CHECK-NEXT:    add t0, s10, s6
-; CHECK-NEXT:    beq s10, s1, .LBB2_12
-; CHECK-NEXT:  # %bb.11:
-; CHECK-NEXT:    sltu s0, s10, s1
-; CHECK-NEXT:  .LBB2_12:
-; CHECK-NEXT:    sltu s11, t0, s10
-; CHECK-NEXT:    beq s9, s8, .LBB2_14
-; CHECK-NEXT:  # %bb.13:
-; CHECK-NEXT:    sltu s10, s9, s8
-; CHECK-NEXT:    j .LBB2_15
-; CHECK-NEXT:  .LBB2_14:
-; CHECK-NEXT:    sltu s10, s3, s2
-; CHECK-NEXT:  .LBB2_15:
-; CHECK-NEXT:    xor t5, s3, s2
-; CHECK-NEXT:    xor s2, s9, s8
-; CHECK-NEXT:    or t5, t5, s2
-; CHECK-NEXT:    and s6, s6, s11
-; CHECK-NEXT:    sltu s2, s5, s9
-; CHECK-NEXT:    ld s11, 0(sp) # 8-byte Folded Reload
-; CHECK-NEXT:    beqz t5, .LBB2_17
-; CHECK-NEXT:  # %bb.16:
-; CHECK-NEXT:    mv s11, s10
-; CHECK-NEXT:  .LBB2_17:
-; CHECK-NEXT:    mulhu t5, a1, a3
-; CHECK-NEXT:    mul s3, a6, a3
-; CHECK-NEXT:    mulhu s9, a6, a4
-; CHECK-NEXT:    sltu s8, s8, s7
-; CHECK-NEXT:    sltu s4, s7, s4
-; CHECK-NEXT:    add s4, s4, s8
-; CHECK-NEXT:    mul s8, a5, a4
-; CHECK-NEXT:    add s4, t5, s4
-; CHECK-NEXT:    add s7, s4, s3
-; CHECK-NEXT:    add s10, s7, s11
-; CHECK-NEXT:    add s9, s9, s2
-; CHECK-NEXT:    add s11, s10, s9
-; CHECK-NEXT:    sltu s5, s1, s5
-; CHECK-NEXT:    add s3, s11, s5
-; CHECK-NEXT:    add s8, s3, s8
-; CHECK-NEXT:    add s0, s8, s0
-; CHECK-NEXT:    add t5, s0, s6
-; CHECK-NEXT:    sltu s6, s3, s11
-; CHECK-NEXT:    sltu s9, t5, s0
-; CHECK-NEXT:    and s6, s5, s6
-; CHECK-NEXT:    beq s11, s10, .LBB2_19
-; CHECK-NEXT:  # %bb.18:
-; CHECK-NEXT:    sltu s2, s11, s10
-; CHECK-NEXT:  .LBB2_19:
-; CHECK-NEXT:    mulhu s5, a6, a3
-; CHECK-NEXT:    mul s11, a5, a3
-; CHECK-NEXT:    mulhu ra, a5, a4
-; CHECK-NEXT:    sltu s10, s10, s7
-; CHECK-NEXT:    sltu s4, s7, s4
-; CHECK-NEXT:    add s4, s4, s10
-; CHECK-NEXT:    add s4, s5, s4
-; CHECK-NEXT:    sltu s7, s8, s3
-; CHECK-NEXT:    add s5, s4, s11
-; CHECK-NEXT:    add s7, ra, s7
-; CHECK-NEXT:    sltu s0, s0, s8
-; CHECK-NEXT:    add s2, s5, s2
-; CHECK-NEXT:    add s0, s7, s0
-; CHECK-NEXT:    add s6, s2, s6
-; CHECK-NEXT:    add s0, s0, s9
-; CHECK-NEXT:    add s0, s6, s0
-; CHECK-NEXT:    beq s0, s6, .LBB2_21
-; CHECK-NEXT:  # %bb.20:
-; CHECK-NEXT:    sltu s8, s0, s6
-; CHECK-NEXT:    j .LBB2_22
-; CHECK-NEXT:  .LBB2_21:
-; CHECK-NEXT:    sltu s8, t5, s3
-; CHECK-NEXT:  .LBB2_22:
-; CHECK-NEXT:    xor s7, s0, s6
-; CHECK-NEXT:    xor s3, t5, s3
-; CHECK-NEXT:    or s10, s3, s7
-; CHECK-NEXT:    beq t0, s1, .LBB2_24
-; CHECK-NEXT:  # %bb.23:
-; CHECK-NEXT:    sltu s9, t0, s1
-; CHECK-NEXT:    bnez s10, .LBB2_25
-; CHECK-NEXT:    j .LBB2_26
-; CHECK-NEXT:  .LBB2_24:
-; CHECK-NEXT:    sltu s9, a7, t3
-; CHECK-NEXT:    beqz s10, .LBB2_26
-; CHECK-NEXT:  .LBB2_25:
-; CHECK-NEXT:    mv s9, s8
-; CHECK-NEXT:  .LBB2_26:
-; CHECK-NEXT:    xor s1, t0, s1
-; CHECK-NEXT:    xor t3, a7, t3
-; CHECK-NEXT:    or s1, s1, s7
-; CHECK-NEXT:    or t3, t3, s3
-; CHECK-NEXT:    or t3, t3, s1
-; CHECK-NEXT:    beqz t3, .LBB2_28
-; CHECK-NEXT:  # %bb.27:
-; CHECK-NEXT:    mv t1, s9
-; CHECK-NEXT:  .LBB2_28:
-; CHECK-NEXT:    slli s3, s0, 1
-; CHECK-NEXT:    sltu s7, s6, s2
-; CHECK-NEXT:    sltu s1, s2, s5
-; CHECK-NEXT:    sltu s2, s5, s4
-; CHECK-NEXT:    mulhu t3, a5, a3
-; CHECK-NEXT:    add s1, s2, s1
-; CHECK-NEXT:    add s7, s1, s7
-; CHECK-NEXT:    mul s4, a2, a1
-; CHECK-NEXT:    mul s5, a4, a3
-; CHECK-NEXT:    slli s1, t6, 1
-; CHECK-NEXT:    srli s2, t4, 63
-; CHECK-NEXT:    mul s6, a1, a1
-; CHECK-NEXT:    slli s8, a7, 1
-; CHECK-NEXT:    srli t6, t6, 63
-; CHECK-NEXT:    or s1, s1, s2
-; CHECK-NEXT:    or s2, s8, t6
-; CHECK-NEXT:    slli t6, t2, 1
-; CHECK-NEXT:    mulhu s8, a2, a2
-; CHECK-NEXT:    srli s9, s4, 63
-; CHECK-NEXT:    mulhu s10, a1, a1
-; CHECK-NEXT:    mul s11, a6, a6
-; CHECK-NEXT:    or t6, t6, s9
+; CHECK-NEXT:    add s5, a7, s5
 ; CHECK-NEXT:    mulhu ra, a6, a6
-; CHECK-NEXT:    add s6, t6, s6
-; CHECK-NEXT:    sltu a6, s6, t6
-; CHECK-NEXT:    slli t4, t4, 1
-; CHECK-NEXT:    srli a1, t2, 63
-; CHECK-NEXT:    slli s4, s4, 1
-; CHECK-NEXT:    or t4, t4, a1
-; CHECK-NEXT:    add a1, s4, s8
-; CHECK-NEXT:    add s10, t4, s10
-; CHECK-NEXT:    sltu s4, a1, s4
-; CHECK-NEXT:    add t2, s10, a6
-; CHECK-NEXT:    add a6, s6, s4
-; CHECK-NEXT:    srli s10, t5, 63
-; CHECK-NEXT:    sltu s6, a6, s6
-; CHECK-NEXT:    add s9, s1, s11
-; CHECK-NEXT:    add t2, t2, s6
-; CHECK-NEXT:    sltu s6, s9, s1
-; CHECK-NEXT:    add s8, s2, ra
-; CHECK-NEXT:    add t3, t3, s7
-; CHECK-NEXT:    add s8, s8, s6
-; CHECK-NEXT:    beq t2, t4, .LBB2_30
-; CHECK-NEXT:  # %bb.29:
-; CHECK-NEXT:    sltu ra, t2, t4
-; CHECK-NEXT:    j .LBB2_31
-; CHECK-NEXT:  .LBB2_30:
-; CHECK-NEXT:    sltu ra, a6, t6
-; CHECK-NEXT:  .LBB2_31:
-; CHECK-NEXT:    mul s11, a4, a4
-; CHECK-NEXT:    xor t4, t2, t4
-; CHECK-NEXT:    xor t6, a6, t6
-; CHECK-NEXT:    or t4, t6, t4
-; CHECK-NEXT:    or s7, s3, s10
-; CHECK-NEXT:    add s3, t3, s5
-; CHECK-NEXT:    beqz t4, .LBB2_33
-; CHECK-NEXT:  # %bb.32:
-; CHECK-NEXT:    mv s4, ra
-; CHECK-NEXT:  .LBB2_33:
-; CHECK-NEXT:    add t4, s9, s4
-; CHECK-NEXT:    sltu s9, t4, s9
-; CHECK-NEXT:    add t6, s8, s9
-; CHECK-NEXT:    add s5, s7, s11
-; CHECK-NEXT:    sltu s10, t6, s8
-; CHECK-NEXT:    add t1, s3, t1
-; CHECK-NEXT:    and s9, s9, s10
-; CHECK-NEXT:    beq s8, s2, .LBB2_35
-; CHECK-NEXT:  # %bb.34:
-; CHECK-NEXT:    sltu s6, s8, s2
-; CHECK-NEXT:  .LBB2_35:
-; CHECK-NEXT:    mul s11, a5, a5
-; CHECK-NEXT:    mulhu a5, a5, a5
-; CHECK-NEXT:    mulhu s8, a4, a4
-; CHECK-NEXT:    slli s10, t0, 1
-; CHECK-NEXT:    srli a7, a7, 63
-; CHECK-NEXT:    slli ra, t5, 1
-; CHECK-NEXT:    srli t0, t0, 63
-; CHECK-NEXT:    or t5, s10, a7
-; CHECK-NEXT:    or s10, ra, t0
-; CHECK-NEXT:    add s11, t5, s11
-; CHECK-NEXT:    add a7, s10, a5
-; CHECK-NEXT:    add s6, s11, s6
-; CHECK-NEXT:    sltu t0, s11, t5
-; CHECK-NEXT:    add a5, s6, s9
-; CHECK-NEXT:    add a7, a7, t0
-; CHECK-NEXT:    sltu t0, s6, s11
-; CHECK-NEXT:    sltu s6, a5, s6
-; CHECK-NEXT:    add a7, a7, t0
-; CHECK-NEXT:    sltu t0, s5, s7
-; CHECK-NEXT:    add a7, a7, s6
-; CHECK-NEXT:    slli s6, t1, 1
 ; CHECK-NEXT:    srli s0, s0, 63
-; CHECK-NEXT:    beq a7, s10, .LBB2_37
-; CHECK-NEXT:  # %bb.36:
-; CHECK-NEXT:    sltu s7, a7, s10
-; CHECK-NEXT:    j .LBB2_38
-; CHECK-NEXT:  .LBB2_37:
-; CHECK-NEXT:    sltu s7, a5, t5
-; CHECK-NEXT:  .LBB2_38:
-; CHECK-NEXT:    or s0, s6, s0
-; CHECK-NEXT:    xor s9, a7, s10
-; CHECK-NEXT:    xor t5, a5, t5
-; CHECK-NEXT:    add s6, s8, t0
-; CHECK-NEXT:    or s10, t5, s9
-; CHECK-NEXT:    beq t6, s2, .LBB2_40
-; CHECK-NEXT:  # %bb.39:
-; CHECK-NEXT:    sltu s8, t6, s2
-; CHECK-NEXT:    add s6, s0, s6
-; CHECK-NEXT:    bnez s10, .LBB2_41
-; CHECK-NEXT:    j .LBB2_42
-; CHECK-NEXT:  .LBB2_40:
-; CHECK-NEXT:    sltu s8, t4, s1
-; CHECK-NEXT:    add s6, s0, s6
-; CHECK-NEXT:    beqz s10, .LBB2_42
-; CHECK-NEXT:  .LBB2_41:
-; CHECK-NEXT:    mv s8, s7
-; CHECK-NEXT:  .LBB2_42:
-; CHECK-NEXT:    xor s2, t6, s2
-; CHECK-NEXT:    xor s1, t4, s1
-; CHECK-NEXT:    or s2, s2, s9
-; CHECK-NEXT:    or t5, s1, t5
-; CHECK-NEXT:    or t5, t5, s2
-; CHECK-NEXT:    beqz t5, .LBB2_44
-; CHECK-NEXT:  # %bb.43:
-; CHECK-NEXT:    mv s4, s8
-; CHECK-NEXT:  .LBB2_44:
-; CHECK-NEXT:    add s4, s5, s4
-; CHECK-NEXT:    sltu s1, s4, s5
-; CHECK-NEXT:    add t5, s6, s1
-; CHECK-NEXT:    sltu s2, t5, s6
-; CHECK-NEXT:    and s1, s1, s2
-; CHECK-NEXT:    beq s6, s0, .LBB2_46
-; CHECK-NEXT:  # %bb.45:
-; CHECK-NEXT:    sltu t0, s6, s0
-; CHECK-NEXT:  .LBB2_46:
-; CHECK-NEXT:    mulhu a4, a4, a3
-; CHECK-NEXT:    mul s0, a3, a3
-; CHECK-NEXT:    mulhu a3, a3, a3
-; CHECK-NEXT:    sltu t3, s3, t3
-; CHECK-NEXT:    sltu s2, t1, s3
-; CHECK-NEXT:    add t3, t3, s2
-; CHECK-NEXT:    srli t1, t1, 63
-; CHECK-NEXT:    add a4, a4, t3
-; CHECK-NEXT:    mul a2, a2, a2
-; CHECK-NEXT:    slli t3, a4, 1
-; CHECK-NEXT:    srli a4, a4, 63
-; CHECK-NEXT:    or t1, t3, t1
-; CHECK-NEXT:    add a3, a4, a3
-; CHECK-NEXT:    add s0, t1, s0
-; CHECK-NEXT:    add t0, s0, t0
-; CHECK-NEXT:    sltu a4, s0, t1
-; CHECK-NEXT:    add s1, t0, s1
-; CHECK-NEXT:    add a3, a3, a4
-; CHECK-NEXT:    sltu a4, t0, s0
-; CHECK-NEXT:    sltu t0, s1, t0
-; CHECK-NEXT:    add a3, a3, a4
-; CHECK-NEXT:    sd a2, 0(a0)
-; CHECK-NEXT:    sd a1, 8(a0)
-; CHECK-NEXT:    sd a6, 16(a0)
-; CHECK-NEXT:    sd t2, 24(a0)
-; CHECK-NEXT:    add a3, a3, t0
-; CHECK-NEXT:    sd t4, 32(a0)
-; CHECK-NEXT:    sd t6, 40(a0)
-; CHECK-NEXT:    sd a5, 48(a0)
-; CHECK-NEXT:    sd a7, 56(a0)
-; CHECK-NEXT:    sd s4, 64(a0)
-; CHECK-NEXT:    sd t5, 72(a0)
-; CHECK-NEXT:    sd s1, 80(a0)
-; CHECK-NEXT:    sd a3, 88(a0)
-; CHECK-NEXT:    ld ra, 104(sp) # 8-byte Folded Reload
-; CHECK-NEXT:    ld s0, 96(sp) # 8-byte Folded Reload
-; CHECK-NEXT:    ld s1, 88(sp) # 8-byte Folded Reload
-; CHECK-NEXT:    ld s2, 80(sp) # 8-byte Folded Reload
-; CHECK-NEXT:    ld s3, 72(sp) # 8-byte Folded Reload
-; CHECK-NEXT:    ld s4, 64(sp) # 8-byte Folded Reload
-; CHECK-NEXT:    ld s5, 56(sp) # 8-byte Folded Reload
-; CHECK-NEXT:    ld s6, 48(sp) # 8-byte Folded Reload
-; CHECK-NEXT:    ld s7, 40(sp) # 8-byte Folded Reload
-; CHECK-NEXT:    ld s8, 32(sp) # 8-byte Folded Reload
-; CHECK-NEXT:    ld s9, 24(sp) # 8-byte Folded Reload
+; CHECK-NEXT:    mulhu t0, t1, a1
+; CHECK-NEXT:    mul s7, t3, a1
+; CHECK-NEXT:    sd s9, 40(sp) # 8-byte Folded Spill
+; CHECK-NEXT:    add t6, s5, s9
+; CHECK-NEXT:    mulhu t1, t3, a2
+; CHECK-NEXT:    sd t6, 48(sp) # 8-byte Folded Spill
+; CHECK-NEXT:    slli t6, t6, 1
+; CHECK-NEXT:    sltu a4, t2, s1
+; CHECK-NEXT:    or t6, t6, s0
+; CHECK-NEXT:    sltu s0, s11, t2
+; CHECK-NEXT:    add t2, t6, a4
+; CHECK-NEXT:    sltu s9, s2, a5
+; CHECK-NEXT:    add ra, t2, ra
+; CHECK-NEXT:    sltu a5, s6, s2
+; CHECK-NEXT:    add t2, ra, s0
+; CHECK-NEXT:    add s7, t0, s7
+; CHECK-NEXT:    sd t2, 40(a0)
+; CHECK-NEXT:    add a5, t1, a5
+; CHECK-NEXT:    sltu s8, s4, s6
+; CHECK-NEXT:    add s9, s7, s9
+; CHECK-NEXT:    add s8, a5, s8
+; CHECK-NEXT:    sd s10, 32(sp) # 8-byte Folded Spill
+; CHECK-NEXT:    beq a7, s4, .LBB2_12
+; CHECK-NEXT:  # %bb.11:
+; CHECK-NEXT:    sltu a5, a7, s4
+; CHECK-NEXT:    j .LBB2_13
+; CHECK-NEXT:  .LBB2_12:
+; CHECK-NEXT:    sltu a5, s3, t5
+; CHECK-NEXT:  .LBB2_13:
+; CHECK-NEXT:    sd s11, 8(sp) # 8-byte Folded Spill
+; CHECK-NEXT:    sd s1, 16(sp) # 8-byte Folded Spill
+; CHECK-NEXT:    mul s10, a6, a2
+; CHECK-NEXT:    xor t1, a7, s4
+; CHECK-NEXT:    xor t5, s3, t5
+; CHECK-NEXT:    or t1, t5, t1
+; CHECK-NEXT:    add s8, s9, s8
+; CHECK-NEXT:    beqz t1, .LBB2_15
+; CHECK-NEXT:  # %bb.14:
+; CHECK-NEXT:    mv t4, a5
+; CHECK-NEXT:  .LBB2_15:
+; CHECK-NEXT:    mulhu s11, a6, a3
+; CHECK-NEXT:    add s10, s8, s10
+; CHECK-NEXT:    sltu s6, s5, a7
+; CHECK-NEXT:    add t4, s10, t4
+; CHECK-NEXT:    mul t1, a3, a3
+; CHECK-NEXT:    add a5, t4, s6
+; CHECK-NEXT:    ld s1, 48(sp) # 8-byte Folded Reload
+; CHECK-NEXT:    sltu t5, s1, s5
+; CHECK-NEXT:    add s11, a5, s11
+; CHECK-NEXT:    add a5, s11, t5
+; CHECK-NEXT:    slli s3, a5, 1
+; CHECK-NEXT:    srli s5, s1, 63
+; CHECK-NEXT:    sltu s1, t2, ra
+; CHECK-NEXT:    or s3, s3, s5
+; CHECK-NEXT:    and s5, s0, s1
+; CHECK-NEXT:    beq ra, t6, .LBB2_17
+; CHECK-NEXT:  # %bb.16:
+; CHECK-NEXT:    sltu a4, ra, t6
+; CHECK-NEXT:  .LBB2_17:
+; CHECK-NEXT:    mulhu t3, t3, a1
+; CHECK-NEXT:    add ra, s3, t1
+; CHECK-NEXT:    add a4, ra, a4
+; CHECK-NEXT:    add s5, a4, s5
+; CHECK-NEXT:    sltu t1, s9, s7
+; CHECK-NEXT:    sltu t0, s7, t0
+; CHECK-NEXT:    sd s5, 48(a0)
+; CHECK-NEXT:    add t0, t0, t1
+; CHECK-NEXT:    beq s8, s9, .LBB2_19
+; CHECK-NEXT:  # %bb.18:
+; CHECK-NEXT:    sltu t1, s8, s9
+; CHECK-NEXT:    j .LBB2_20
+; CHECK-NEXT:  .LBB2_19:
+; CHECK-NEXT:    sltu t1, s4, s2
+; CHECK-NEXT:  .LBB2_20:
+; CHECK-NEXT:    ld s7, 24(sp) # 8-byte Folded Reload
+; CHECK-NEXT:    mul s0, a6, a1
+; CHECK-NEXT:    xor s1, s4, s2
+; CHECK-NEXT:    xor s2, s8, s9
+; CHECK-NEXT:    or s1, s1, s2
+; CHECK-NEXT:    add t0, t3, t0
+; CHECK-NEXT:    beqz s1, .LBB2_22
+; CHECK-NEXT:  # %bb.21:
+; CHECK-NEXT:    mv s7, t1
+; CHECK-NEXT:  .LBB2_22:
+; CHECK-NEXT:    sd a7, 24(sp) # 8-byte Folded Spill
+; CHECK-NEXT:    mulhu s9, a6, a2
+; CHECK-NEXT:    add s0, t0, s0
+; CHECK-NEXT:    mul t1, a3, a2
+; CHECK-NEXT:    sltu s4, s10, s8
+; CHECK-NEXT:    add s7, s0, s7
+; CHECK-NEXT:    add t3, s7, s4
+; CHECK-NEXT:    add s9, t3, s9
+; CHECK-NEXT:    sltu s10, t4, s10
+; CHECK-NEXT:    sltu s1, a5, s11
+; CHECK-NEXT:    add t3, s9, s10
+; CHECK-NEXT:    and s1, t5, s1
+; CHECK-NEXT:    beq s11, t4, .LBB2_24
+; CHECK-NEXT:  # %bb.23:
+; CHECK-NEXT:    sltu s6, s11, t4
+; CHECK-NEXT:  .LBB2_24:
+; CHECK-NEXT:    add s8, t3, t1
+; CHECK-NEXT:    srli t1, a5, 63
+; CHECK-NEXT:    mulhu s2, a3, a3
+; CHECK-NEXT:    add s11, s8, s6
+; CHECK-NEXT:    sltu s6, s5, a4
+; CHECK-NEXT:    add s1, s11, s1
+; CHECK-NEXT:    sltu a7, a4, ra
+; CHECK-NEXT:    slli a4, s1, 1
+; CHECK-NEXT:    sltu t5, ra, s3
+; CHECK-NEXT:    or a4, a4, t1
+; CHECK-NEXT:    mulhu t1, a6, a1
+; CHECK-NEXT:    add a6, a4, t5
+; CHECK-NEXT:    mul t5, a3, a1
+; CHECK-NEXT:    add a6, a6, s2
+; CHECK-NEXT:    add a7, a7, s6
+; CHECK-NEXT:    add a6, a6, a7
+; CHECK-NEXT:    sltu a7, s7, s0
+; CHECK-NEXT:    sd a6, 56(a0)
+; CHECK-NEXT:    sltu t0, s0, t0
+; CHECK-NEXT:    add a7, t0, a7
+; CHECK-NEXT:    sltu t0, t3, s9
+; CHECK-NEXT:    add s2, t1, a7
+; CHECK-NEXT:    and t0, s10, t0
+; CHECK-NEXT:    beq s9, s7, .LBB2_26
+; CHECK-NEXT:  # %bb.25:
+; CHECK-NEXT:    sltu s4, s9, s7
+; CHECK-NEXT:  .LBB2_26:
+; CHECK-NEXT:    add t5, s2, t5
+; CHECK-NEXT:    mulhu s7, a3, a2
+; CHECK-NEXT:    add s6, t5, s4
+; CHECK-NEXT:    add s4, s6, t0
+; CHECK-NEXT:    sltu a7, s8, t3
+; CHECK-NEXT:    add a7, s4, a7
+; CHECK-NEXT:    sltu t0, s11, s8
+; CHECK-NEXT:    sltu t1, s1, s11
+; CHECK-NEXT:    add a7, a7, t0
+; CHECK-NEXT:    add t1, a7, t1
+; CHECK-NEXT:    ld s9, 32(sp) # 8-byte Folded Reload
+; CHECK-NEXT:    beq a6, a4, .LBB2_28
+; CHECK-NEXT:  # %bb.27:
+; CHECK-NEXT:    sltu s0, a6, a4
+; CHECK-NEXT:    j .LBB2_29
+; CHECK-NEXT:  .LBB2_28:
+; CHECK-NEXT:    sltu s0, s5, s3
+; CHECK-NEXT:  .LBB2_29:
+; CHECK-NEXT:    ld s8, 40(sp) # 8-byte Folded Reload
 ; CHECK-NEXT:    ld s10, 16(sp) # 8-byte Folded Reload
 ; CHECK-NEXT:    ld s11, 8(sp) # 8-byte Folded Reload
+; CHECK-NEXT:    xor a4, a6, a4
+; CHECK-NEXT:    xor t0, s5, s3
+; CHECK-NEXT:    add a6, t1, s7
+; CHECK-NEXT:    or s7, t0, a4
+; CHECK-NEXT:    beq t2, t6, .LBB2_31
+; CHECK-NEXT:  # %bb.30:
+; CHECK-NEXT:    sltu s3, t2, t6
+; CHECK-NEXT:    j .LBB2_32
+; CHECK-NEXT:  .LBB2_31:
+; CHECK-NEXT:    sltu s3, s11, s10
+; CHECK-NEXT:  .LBB2_32:
+; CHECK-NEXT:    slli t1, a6, 1
+; CHECK-NEXT:    srli s5, s1, 63
+; CHECK-NEXT:    beqz s7, .LBB2_34
+; CHECK-NEXT:  # %bb.33:
+; CHECK-NEXT:    mv s3, s0
+; CHECK-NEXT:  .LBB2_34:
+; CHECK-NEXT:    mul s0, a2, a2
+; CHECK-NEXT:    xor a7, t2, t6
+; CHECK-NEXT:    xor t2, s11, s10
+; CHECK-NEXT:    or a4, a7, a4
+; CHECK-NEXT:    or a7, t2, t0
+; CHECK-NEXT:    or a4, a7, a4
+; CHECK-NEXT:    or t2, t1, s5
+; CHECK-NEXT:    beqz a4, .LBB2_36
+; CHECK-NEXT:  # %bb.35:
+; CHECK-NEXT:    mv s9, s3
+; CHECK-NEXT:  .LBB2_36:
+; CHECK-NEXT:    add a4, t2, s0
+; CHECK-NEXT:    add t0, a4, s9
+; CHECK-NEXT:    sd t0, 64(a0)
+; CHECK-NEXT:    sltu s0, s6, t5
+; CHECK-NEXT:    sltu s2, t5, s2
+; CHECK-NEXT:    ld a7, 24(sp) # 8-byte Folded Reload
+; CHECK-NEXT:    beq a6, s4, .LBB2_38
+; CHECK-NEXT:  # %bb.37:
+; CHECK-NEXT:    sltu t6, a6, s4
+; CHECK-NEXT:    j .LBB2_39
+; CHECK-NEXT:  .LBB2_38:
+; CHECK-NEXT:    sltu t6, s1, t3
+; CHECK-NEXT:  .LBB2_39:
+; CHECK-NEXT:    sltu t1, s4, s6
+; CHECK-NEXT:    xor t5, a6, s4
+; CHECK-NEXT:    xor t3, s1, t3
+; CHECK-NEXT:    add s2, s2, s0
+; CHECK-NEXT:    or s1, t3, t5
+; CHECK-NEXT:    beq a5, t4, .LBB2_41
+; CHECK-NEXT:  # %bb.40:
+; CHECK-NEXT:    sltu s0, a5, t4
+; CHECK-NEXT:    j .LBB2_42
+; CHECK-NEXT:  .LBB2_41:
+; CHECK-NEXT:    ld s0, 48(sp) # 8-byte Folded Reload
+; CHECK-NEXT:    sltu s0, s0, a7
+; CHECK-NEXT:  .LBB2_42:
+; CHECK-NEXT:    mulhu a3, a3, a1
+; CHECK-NEXT:    add t1, s2, t1
+; CHECK-NEXT:    beqz s1, .LBB2_44
+; CHECK-NEXT:  # %bb.43:
+; CHECK-NEXT:    mv s0, t6
+; CHECK-NEXT:  .LBB2_44:
+; CHECK-NEXT:    mul t6, a2, a1
+; CHECK-NEXT:    xor a5, a5, t4
+; CHECK-NEXT:    ld t4, 48(sp) # 8-byte Folded Reload
+; CHECK-NEXT:    xor a7, t4, a7
+; CHECK-NEXT:    or a5, a5, t5
+; CHECK-NEXT:    or a7, a7, t3
+; CHECK-NEXT:    or a7, a7, a5
+; CHECK-NEXT:    add a5, a3, t1
+; CHECK-NEXT:    beqz a7, .LBB2_46
+; CHECK-NEXT:  # %bb.45:
+; CHECK-NEXT:    mv s8, s0
+; CHECK-NEXT:  .LBB2_46:
+; CHECK-NEXT:    add t6, a5, t6
+; CHECK-NEXT:    srli a6, a6, 63
+; CHECK-NEXT:    mulhu a7, a2, a2
+; CHECK-NEXT:    sltu a3, a4, t2
+; CHECK-NEXT:    mulhu t1, a2, a1
+; CHECK-NEXT:    add t2, t6, s8
+; CHECK-NEXT:    sltu t3, t0, a4
+; CHECK-NEXT:    slli a2, t2, 1
+; CHECK-NEXT:    sltu a4, t2, t6
+; CHECK-NEXT:    or a2, a2, a6
+; CHECK-NEXT:    sltu a5, t6, a5
+; CHECK-NEXT:    add t0, a2, a3
+; CHECK-NEXT:    mul a6, a1, a1
+; CHECK-NEXT:    add t0, t0, a7
+; CHECK-NEXT:    add a4, a5, a4
+; CHECK-NEXT:    add a5, t0, t3
+; CHECK-NEXT:    add a4, t1, a4
+; CHECK-NEXT:    sd a5, 72(a0)
+; CHECK-NEXT:    srli a7, t2, 63
+; CHECK-NEXT:    slli t1, a4, 1
+; CHECK-NEXT:    sltu t2, a5, t0
+; CHECK-NEXT:    or a5, t1, a7
+; CHECK-NEXT:    and a7, t3, t2
+; CHECK-NEXT:    beq t0, a2, .LBB2_48
+; CHECK-NEXT:  # %bb.47:
+; CHECK-NEXT:    sltu a3, t0, a2
+; CHECK-NEXT:  .LBB2_48:
+; CHECK-NEXT:    add a6, a5, a6
+; CHECK-NEXT:    mulhu a1, a1, a1
+; CHECK-NEXT:    add a3, a6, a3
+; CHECK-NEXT:    add a7, a3, a7
+; CHECK-NEXT:    srli a4, a4, 63
+; CHECK-NEXT:    sltu a2, a6, a5
+; CHECK-NEXT:    add a2, a4, a2
+; CHECK-NEXT:    sltu a4, a3, a6
+; CHECK-NEXT:    sltu a3, a7, a3
+; CHECK-NEXT:    add a2, a2, a4
+; CHECK-NEXT:    add a2, a2, a3
+; CHECK-NEXT:    add a1, a2, a1
+; CHECK-NEXT:    sd a7, 80(a0)
+; CHECK-NEXT:    sd a1, 88(a0)
+; CHECK-NEXT:    ld ra, 152(sp) # 8-byte Folded Reload
+; CHECK-NEXT:    ld s0, 144(sp) # 8-byte Folded Reload
+; CHECK-NEXT:    ld s1, 136(sp) # 8-byte Folded Reload
+; CHECK-NEXT:    ld s2, 128(sp) # 8-byte Folded Reload
+; CHECK-NEXT:    ld s3, 120(sp) # 8-byte Folded Reload
+; CHECK-NEXT:    ld s4, 112(sp) # 8-byte Folded Reload
+; CHECK-NEXT:    ld s5, 104(sp) # 8-byte Folded Reload
+; CHECK-NEXT:    ld s6, 96(sp) # 8-byte Folded Reload
+; CHECK-NEXT:    ld s7, 88(sp) # 8-byte Folded Reload
+; CHECK-NEXT:    ld s8, 80(sp) # 8-byte Folded Reload
+; CHECK-NEXT:    ld s9, 72(sp) # 8-byte Folded Reload
+; CHECK-NEXT:    ld s10, 64(sp) # 8-byte Folded Reload
+; CHECK-NEXT:    ld s11, 56(sp) # 8-byte Folded Reload
 ; CHECK-NEXT:    .cfi_restore ra
 ; CHECK-NEXT:    .cfi_restore s0
 ; CHECK-NEXT:    .cfi_restore s1
@@ -644,7 +649,7 @@ define void @sqr_i768_zext_i384(ptr %out, ptr %in) {
 ; CHECK-NEXT:    .cfi_restore s9
 ; CHECK-NEXT:    .cfi_restore s10
 ; CHECK-NEXT:    .cfi_restore s11
-; CHECK-NEXT:    addi sp, sp, 112
+; CHECK-NEXT:    addi sp, sp, 160
 ; CHECK-NEXT:    .cfi_def_cfa_offset 0
 ; CHECK-NEXT:    ret
   %x = load i384, ptr %in
@@ -658,43 +663,43 @@ define void @sqr_i768_zext_i384(ptr %out, ptr %in) {
 define void @sqr_i256_sext_i128(ptr %out, ptr %in) {
 ; CHECK-LABEL: sqr_i256_sext_i128:
 ; CHECK:       # %bb.0:
-; CHECK-NEXT:    ld a2, 8(a1)
-; CHECK-NEXT:    ld a1, 0(a1)
-; CHECK-NEXT:    srai a3, a2, 63
-; CHECK-NEXT:    mulhu a4, a1, a2
-; CHECK-NEXT:    mul a5, a1, a2
-; CHECK-NEXT:    mul a6, a1, a3
-; CHECK-NEXT:    mulhu a7, a1, a3
-; CHECK-NEXT:    mulhu t0, a1, a1
-; CHECK-NEXT:    mul a3, a2, a3
-; CHECK-NEXT:    mul t1, a2, a2
-; CHECK-NEXT:    mulhu a2, a2, a2
-; CHECK-NEXT:    mul a1, a1, a1
-; CHECK-NEXT:    srli t2, a5, 63
-; CHECK-NEXT:    slli a5, a5, 1
-; CHECK-NEXT:    add a4, a6, a4
+; CHECK-NEXT:    ld a2, 0(a1)
+; CHECK-NEXT:    ld a1, 8(a1)
+; CHECK-NEXT:    srai a3, a1, 63
+; CHECK-NEXT:    mul a4, a2, a1
+; CHECK-NEXT:    mulhu a5, a2, a1
+; CHECK-NEXT:    mul a6, a2, a3
+; CHECK-NEXT:    mulhu a7, a2, a3
+; CHECK-NEXT:    mul a3, a1, a3
+; CHECK-NEXT:    mulhu t0, a2, a2
+; CHECK-NEXT:    mul t1, a1, a1
+; CHECK-NEXT:    srli t2, a4, 63
+; CHECK-NEXT:    add a5, a6, a5
 ; CHECK-NEXT:    add a7, a6, a7
-; CHECK-NEXT:    add t0, a5, t0
+; CHECK-NEXT:    slli t3, a5, 1
 ; CHECK-NEXT:    add a3, a7, a3
-; CHECK-NEXT:    slli a7, a4, 1
-; CHECK-NEXT:    sltu a6, a4, a6
-; CHECK-NEXT:    srli a4, a4, 63
-; CHECK-NEXT:    sltu a5, t0, a5
-; CHECK-NEXT:    or a7, a7, t2
+; CHECK-NEXT:    or a7, t3, t2
+; CHECK-NEXT:    mulhu a1, a1, a1
+; CHECK-NEXT:    slli a4, a4, 1
+; CHECK-NEXT:    mul a2, a2, a2
+; CHECK-NEXT:    add t0, a4, t0
+; CHECK-NEXT:    sltu a4, t0, a4
+; CHECK-NEXT:    sltu a6, a5, a6
+; CHECK-NEXT:    srli a5, a5, 63
 ; CHECK-NEXT:    add a3, a3, a6
 ; CHECK-NEXT:    add t1, a7, t1
 ; CHECK-NEXT:    slli a3, a3, 1
-; CHECK-NEXT:    sltu a6, t1, a7
-; CHECK-NEXT:    or a3, a3, a4
-; CHECK-NEXT:    add a5, t1, a5
-; CHECK-NEXT:    add a2, a3, a2
-; CHECK-NEXT:    sltu a3, a5, t1
-; CHECK-NEXT:    add a2, a2, a6
-; CHECK-NEXT:    add a2, a2, a3
-; CHECK-NEXT:    sd a1, 0(a0)
+; CHECK-NEXT:    add a4, t1, a4
+; CHECK-NEXT:    or a3, a3, a5
+; CHECK-NEXT:    sltu a5, t1, a7
+; CHECK-NEXT:    add a1, a3, a1
+; CHECK-NEXT:    sltu a3, a4, t1
+; CHECK-NEXT:    add a1, a1, a5
+; CHECK-NEXT:    add a1, a1, a3
+; CHECK-NEXT:    sd a2, 0(a0)
 ; CHECK-NEXT:    sd t0, 8(a0)
-; CHECK-NEXT:    sd a5, 16(a0)
-; CHECK-NEXT:    sd a2, 24(a0)
+; CHECK-NEXT:    sd a4, 16(a0)
+; CHECK-NEXT:    sd a1, 24(a0)
 ; CHECK-NEXT:    ret
   %x = load i128, ptr %in
   %z = sext i128 %x to i256
