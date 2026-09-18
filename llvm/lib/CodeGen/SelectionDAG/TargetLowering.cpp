@@ -12625,7 +12625,7 @@ SDValue TargetLowering::expandWideSquare(SDNode *N, SelectionDAG &DAG) const {
   // the final add, which roughly halves the spills compared with letting the
   // register-reduction heuristic order nodes that all share N's IR order.
   unsigned Order = N->getIROrder();
-  auto dl = [&]() { return SDLoc(N->getDebugLoc(), Order++); };
+  auto dl = [&]() { return SDLoc(N, Order++); };
 
   // The limbs have the legal type that VT is ultimately expanded to.
   EVT LimbVT = getTypeToExpandTo(Ctx, VT);
